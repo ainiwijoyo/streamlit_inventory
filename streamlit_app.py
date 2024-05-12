@@ -1,5 +1,7 @@
 import streamlit as st
 import mysql.connector
+from streamlit_option_menu import option_menu
+import os
 
 def koneksi_db():
     """
@@ -45,26 +47,31 @@ def main():
         st.session_state.logged_in = False
 
     if not st.session_state.logged_in:
-        st.header("Silakan Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
+        st.sidebar.header("Silakan Login")
+        username = st.sidebar.text_input("Username")
+        password = st.sidebar.text_input("Password", type="password")
+        if st.sidebar.button("Login"):
             if login(username, password):
                 st.session_state.logged_in = True
                 st.experimental_rerun()
             else:
-                st.error("Login gagal. Periksa kembali username dan password.")
-
+                st.sidebar.error("Login gagal. Periksa kembali username dan password.")
+    
     # Halaman setelah login
     else:
         st.header("Selamat datang!")
 
         # Tambahkan konten yang ingin ditampilkan setelah login di sini
+        with st.sidebar:
+            st.write("<style> .option-menu-container select { font-family: 'Roboto', sans-serif; } </style>", unsafe_allow_html=True)
+            selected = option_menu("PILIH MENU", ["Home",'kategori Barang', 'Stok Barang', 'Barang Masuk', 'Barang keluar', 'Dipinjam','Laporan stok', 'Laporan Masuk','Laporan keluar','Laporan dipinjam','Settings', 'Logout'], 
+                               icons=['house','collection','bag-check', 'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated','journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill', 'gear', 'door-closed'], 
+                               menu_icon="cast", 
+                               default_index=1)
 
-        # Tombol logout
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.experimental_rerun()
+            if selected == "Logout":
+                st.session_state.logged_in = False
+                st.experimental_rerun()
 
 if __name__ == "__main__":
     main()

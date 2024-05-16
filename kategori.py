@@ -1,7 +1,6 @@
 import streamlit as st
 import mysql.connector
 import time
-from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 # Fungsi untuk menghubungkan ke database MySQL
 def koneksi_db():
@@ -16,7 +15,7 @@ def koneksi_db():
     )
     return db
 
-# Fungsi untuk menambahkan kategori baru
+# Fungsi untuk menambahkan kategori baru dengan id_kategori yang sesuai
 def create_kategori(nama_kategori, keterangan):
     """
     Fungsi untuk menambahkan kategori baru
@@ -33,9 +32,16 @@ def create_kategori(nama_kategori, keterangan):
         db.close()
         return "Kategori telah ditambahkan sebelumnya!"
 
-    # Jika tidak ada, tambahkan kategori baru
-    sql = "INSERT INTO tb_kategori (nama_kategori, keterangan) VALUES (%s, %s)"
-    values = (nama_kategori, keterangan)
+    # Dapatkan id_kategori terakhir dan tentukan id_kategori baru
+    sql_get_last_id = "SELECT MAX(id_kategori) FROM tb_kategori"
+    cursor.execute(sql_get_last_id)
+    result = cursor.fetchone()
+    last_id = result[0] if result[0] is not None else 0
+    new_id = last_id + 1
+
+    # Jika tidak ada, tambahkan kategori baru dengan id_kategori yang sesuai
+    sql = "INSERT INTO tb_kategori (id_kategori, nama_kategori, keterangan) VALUES (%s, %s, %s)"
+    values = (new_id, nama_kategori, keterangan)
 
     cursor.execute(sql, values)
     db.commit()
@@ -51,7 +57,7 @@ def read_kategori():
     db = koneksi_db()
     cursor = db.cursor()
 
-    sql = "SELECT * FROM tb_kategori"
+    sql = "SELECT * FROM tb_kategori ORDER BY id_kategori"
     cursor.execute(sql)
     result = cursor.fetchall()
 
@@ -76,7 +82,7 @@ def update_kategori(id_kategori, nama_kategori, keterangan):
 
     return f"Kategori dengan ID {id_kategori} berhasil diperbarui!"
 
-# Fungsi untuk menghapus kategori
+# Fungsi untuk menghapus kategori dan menyesuaikan id_kategori
 def delete_kategori(id_kategori):
     """
     Fungsi untuk menghapus kategori
@@ -84,14 +90,27 @@ def delete_kategori(id_kategori):
     db = koneksi_db()
     cursor = db.cursor()
 
+    # Hapus kategori dengan id_kategori yang diberikan
     sql = "DELETE FROM tb_kategori WHERE id_kategori = %s"
     values = (id_kategori,)
-
     cursor.execute(sql, values)
+
+    # Dapatkan daftar kategori yang tersisa dan perbarui id_kategori mereka
+    sql = "SELECT id_kategori FROM tb_kategori ORDER BY id_kategori"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+
+    # Update id_kategori untuk kategori yang tersisa
+    new_id = 1
+    for (old_id,) in result:
+        sql_update = "UPDATE tb_kategori SET id_kategori = %s WHERE id_kategori = %s"
+        cursor.execute(sql_update, (new_id, old_id))
+        new_id += 1
+
     db.commit()
     db.close()
 
-    return f"Kategori dengan ID {id_kategori} berhasil dihapus!"
+    return f"Kategori dengan ID {id_kategori} berhasil dihapus dan id_kategori telah diperbarui!"
 
 # Aplikasi Utama
 st.title("Aplikasi CRUD Kategori")

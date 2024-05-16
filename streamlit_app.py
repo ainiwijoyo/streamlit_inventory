@@ -1,19 +1,7 @@
 import streamlit as st
-import mysql.connector
 from streamlit_option_menu import option_menu
 import os
-
-def koneksi_db():
-    """
-    Fungsi untuk koneksi ke database MySQL
-    """
-    db = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="",
-        database="db_stinven"
-    )
-    return db
+from koneksi import koneksi_db
 
 def ambil_kredensial(username):
     """
@@ -40,13 +28,12 @@ def login(username, password):
     return False
 
 def main():
-    st.title("Aplikasi Streamlit dengan Otentikasi dari Database MySQL")
-
     # Halaman login
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
 
     if not st.session_state.logged_in:
+        st.write("## SELAMAT DATANG!! di sistem informasi inventaris TIK fakultas kesehatan")
         st.sidebar.header("Silakan Login")
         username = st.sidebar.text_input("Username")
         password = st.sidebar.text_input("Password", type="password")
@@ -61,13 +48,20 @@ def main():
     else:
         st.header("Selamat datang!")
 
-        # Tambahkan konten yang ingin ditampilkan setelah login di sini
+        # Tambahkan metrik yang ingin ditampilkan setelah login berhasil
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Data Barang", "70 °F", "1.2 °F")
+        col2.metric("Barang Masuk", "9 mph", "-8%")
+        col3.metric("Barang Keluar", "86%", "4%")
+        col4.metric("Peminjaman", "96%", "4%")
+
+        # Tambahkan konten lainnya yang ingin ditampilkan setelah login di sini
         with st.sidebar:
             st.write("<style> .option-menu-container select { font-family: 'Roboto', sans-serif; } </style>", unsafe_allow_html=True)
             selected = option_menu("PILIH MENU", ["Home",'kategori Barang', 'Stok Barang', 'Barang Masuk', 'Barang keluar', 'Dipinjam','Laporan stok', 'Laporan Masuk','Laporan keluar','Laporan dipinjam','Settings', 'Logout'], 
-                               icons=['house','collection','bag-check', 'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated','journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill', 'gear', 'door-closed'], 
-                               menu_icon="cast", 
-                               default_index=1)
+                                   icons=['house','collection','bag-check', 'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated','journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill', 'gear', 'door-closed'], 
+                                   menu_icon="cast", 
+                                   default_index=0)
 
             if selected == "Logout":
                 st.session_state.logged_in = False

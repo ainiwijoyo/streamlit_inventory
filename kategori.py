@@ -112,7 +112,7 @@ def delete_kategori(id_kategori):
     db.commit()
     db.close()
 
-    return f"Kategori dengan ID {id_kategori} berhasil dihapus dan id_kategori telah diperbarui!"
+    return f"Kategori Nomor {id_kategori} berhasil dihapus!"
 
 # Fungsi untuk membuat PDF dari data kategori
 def buat_pdf(kategori):

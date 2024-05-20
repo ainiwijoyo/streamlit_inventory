@@ -1,11 +1,10 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-import os
 from koneksi import koneksi_db
 
 def ambil_kredensial(username):
     """
-    Fungsi untuk mengambil kredensial dari database MySQL berdasarkan username
+    Fungsi untuk mengambil kredensial dari database PostgreSQL berdasarkan username
     """
     db = koneksi_db()
     cursor = db.cursor()
@@ -58,11 +57,55 @@ def main():
         # Tambahkan konten lainnya yang ingin ditampilkan setelah login di sini
         with st.sidebar:
             st.write("<style> .option-menu-container select { font-family: 'Roboto', sans-serif; } </style>", unsafe_allow_html=True)
-            selected = option_menu("PILIH MENU", ["Home",'kategori Barang', 'Stok Barang', 'Barang Masuk', 'Barang keluar', 'Dipinjam','Laporan stok', 'Laporan Masuk','Laporan keluar','Laporan dipinjam','Settings', 'Logout'], 
-                                   icons=['house','collection','bag-check', 'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated','journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill', 'gear', 'door-closed'], 
+            selected = option_menu("PILIH MENU", ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Settings', 'Logout'], 
+                                   icons=['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill', 'gear', 'door-closed'], 
                                    menu_icon="cast", 
                                    default_index=0)
+            
+            if selected == "Master":
+                master_selected = option_menu("Master Menu", ["Kategori", "Merk", "Kondisi", "Ruangan"], 
+                                              icons=['tags', 'tag', 'check2-circle', 'columns-gap'], 
+                                              menu_icon="cast", 
+                                              default_index=0, 
+                                              orientation="horizontal")
 
+                if master_selected == "Kategori":
+                    st.write("Anda memilih menu Kategori")
+                elif master_selected == "Merk":
+                    st.write("Anda memilih menu Merk")
+                elif master_selected == "Kondisi":
+                    st.write("Anda memilih menu Kondisi")
+                elif master_selected == "Ruangan":
+                    st.write("Anda memilih menu Ruangan")
+            
+            if selected == "Transaksi":
+                master_selected = option_menu("Transaksi Menu", ["Barang masuk", "Barang keluar", "Barang dipinjam"], 
+                                              icons=['box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'], 
+                                              menu_icon="cast", 
+                                              default_index=0, 
+                                              orientation="horizontal")
+
+                if master_selected == "Kategori":
+                    st.write("Anda memilih menu Kategori")
+                elif master_selected == "Merk":
+                    st.write("Anda memilih menu Merk")
+                elif master_selected == "Kondisi":
+                    st.write("Anda memilih menu Kondisi")
+            
+            if selected == "Laporan":
+                master_selected = option_menu("Transaksi Menu", ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"], 
+                                              icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill',], 
+                                              menu_icon="cast", 
+                                              default_index=0, 
+                                              orientation="horizontal")
+
+                if master_selected == "Kategori":
+                    st.write("Anda memilih menu Kategori")
+                elif master_selected == "Merk":
+                    st.write("Anda memilih menu Merk")
+                elif master_selected == "Kondisi":
+                    st.write("Anda memilih menu Kondisi")
+            
             if selected == "Logout":
                 st.session_state.logged_in = False
                 st.experimental_rerun()

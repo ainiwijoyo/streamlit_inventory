@@ -1,6 +1,8 @@
 import streamlit as st
 import mysql.connector
 import time
+from fpdf import FPDF
+import pandas as pd
 
 # Fungsi untuk menghubungkan ke database MySQL
 def koneksi_db():
@@ -112,22 +114,72 @@ def delete_kategori(id_kategori):
 
     return f"Kategori dengan ID {id_kategori} berhasil dihapus dan id_kategori telah diperbarui!"
 
+# Fungsi untuk membuat PDF dari data kategori
+def buat_pdf(kategori):
+    """
+    Fungsi untuk membuat PDF dari data kategori
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    # Tambahkan judul
+    pdf.cell(200, 10, txt="Daftar Kategori", ln=True, align='C')
+
+    # Tambahkan header tabel
+    pdf.cell(40, 10, txt="ID", border=1)
+    pdf.cell(80, 10, txt="Nama Kategori", border=1)
+    pdf.cell(70, 10, txt="Keterangan", border=1)
+    pdf.ln()
+
+    # Tambahkan data kategori ke tabel
+    for kat in kategori:
+        pdf.cell(40, 10, txt=str(kat[0]), border=1)
+        pdf.cell(80, 10, txt=kat[1], border=1)
+        pdf.cell(70, 10, txt=kat[2], border=1)
+        pdf.ln()
+
+    # Simpan PDF ke file
+    pdf_file = "kategori.pdf"
+    pdf.output(pdf_file)
+
+    return pdf_file
+
 # Aplikasi Utama
-st.title("Aplikasi CRUD Kategori")
+st.title("KATEGORI")
 
 # Menampilkan semua kategori
 def tampilkan_kategori():
     kategori = read_kategori()
     if kategori:
-        st.table(kategori)
+        # Buat DataFrame dari hasil query dan pilih kolom yang diinginkan tanpa indeks
+        df = pd.DataFrame(kategori, columns=["ID", "Nama Kategori", "Keterangan"])
+        df.index += 1
+
+        df_tampil = df.drop(columns=["ID"])
+
+        st.table(df_tampil)
+        
+        # Buat dan simpan PDF, lalu berikan opsi untuk mengunduh
+        pdf_file = buat_pdf(kategori)
+        with open(pdf_file, "rb") as file:
+            st.download_button(
+                label="Unduh PDF",
+                data=file,
+                file_name=pdf_file,
+                mime="application/pdf"
+            )
     else:
         st.write("Tidak ada data kategori yang ditemukan.")
 
 tampilkan_kategori()
 
-def tampilkan_pesan(pesan, icon, waktu_tunda=3):
+def tampilkan_pesan(pesan, icon, warna, waktu_tunda=3):
     placeholder = st.empty()
-    placeholder.success(pesan, icon=icon)
+    if warna == "success":
+        placeholder.success(pesan, icon=icon)
+    elif warna == "warning":
+        placeholder.warning(pesan, icon=icon)
     time.sleep(waktu_tunda)
     placeholder.empty()
 
@@ -139,10 +191,10 @@ with st.expander("Tambah Kategori Baru"):
     if st.button("Tambah"):
         pesan = create_kategori(nama_kategori, keterangan)
         if "berhasil" in pesan:
-            tampilkan_pesan(pesan, "✅")
+            tampilkan_pesan(pesan, "✅", "success")
             st.experimental_rerun()
         else:
-            tampilkan_pesan(pesan, "⚠️")
+            tampilkan_pesan(pesan, "⚠️", "warning")
 
 # Bagian untuk memperbarui kategori
 with st.expander("Perbarui Kategori"):
@@ -169,7 +221,7 @@ with st.expander("Perbarui Kategori"):
 
         if st.button("Perbarui"):
             pesan = update_kategori(kategori_id, nama_kategori_baru, keterangan_baru)
-            tampilkan_pesan(pesan, "✅")
+            tampilkan_pesan(pesan, "✅", "success")
             st.experimental_rerun()
 
 # Bagian untuk menghapus kategori
@@ -184,5 +236,5 @@ with st.expander("Hapus Kategori"):
 
         if st.button("Hapus"):
             pesan = delete_kategori(kategori_id_hapus)
-            tampilkan_pesan(pesan, "✅")
+            tampilkan_pesan(pesan, "✅", "success")
             st.experimental_rerun()

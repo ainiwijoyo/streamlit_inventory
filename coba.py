@@ -16,7 +16,7 @@ st.table(df)
 # Menambahkan kolom Aksi
 def aksi(nim):
     def edit():
-        # Implementasi fungsi edit data mahasiswa berdasarkan NIM
+        # Implementasi fungsi edit data mahasiswa berdasarkan NIM             
         pass
 
     def hapus():

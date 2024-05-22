@@ -1,120 +1,27 @@
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
-import pandas as pd
 
-# Contoh DataFrame
-df = pd.DataFrame({
-    'Nama': ['Alice', 'Bob', 'Charlie'],
-    'Usia': [24, 27, 22]
-})
+# Baris nama kolom
+kolom = ["Kolom 1", "Kolom 2", "Kolom 3", "Kolom 4", "Kolom 5", "Kolom 6", "Kolom 7", "Kolom 8", "Kolom 9"]
+st.write(kolom)
 
-# Membuat GridOptionsBuilder
-gb = GridOptionsBuilder.from_dataframe(df)
-
-# Menambahkan kolom tombol tambah
-string_to_add_row = """
-function(e) { 
-    let api = e.api; 
-    let rowIndex = e.rowIndex + 1; 
-    api.applyTransaction({addIndex: rowIndex, add: [{}]}); 
-};
-"""
-cell_button_add = JsCode('''
-    class BtnAddCellRenderer {
-        init(params) {
-            this.params = params;
-            this.eGui = document.createElement('div');
-            this.eGui.innerHTML = `
-             <span>
-                <style>
-                .btn_add {
-                  background-color: limegreen;
-                  border: none;
-                  color: white;
-                  text-align: center;
-                  text-decoration: none;
-                  display: inline-block;
-                  font-size: 10px;
-                  font-weight: bold;
-                  height: 2.5em;
-                  width: 8em;
-                  cursor: pointer;
-                }
-
-                .btn_add:hover {
-                  background-color: #05d588;
-                }
-                </style>
-                <button id='click-button' 
-                    class="btn_add" 
-                    >&#x2795; Add</button>
-             </span>
-          `;
-        }
-
-        getGui() {
-            return this.eGui;
-        }
-
-    };
-''')
-gb.configure_column('', headerTooltip='Klik untuk menambahkan baris baru', editable=False, filter=False,
-                    onCellClicked=JsCode(string_to_add_row), cellRenderer=cell_button_add,
-                    autoHeight=True, wrapText=True, lockPosition='left')
-
-# Menambahkan kolom tombol hapus
-string_to_delete = """
-function(e) { 
-    let api = e.api; 
-    let sel = api.getSelectedRows(); 
-    api.applyTransaction({remove: sel}); 
-};
-"""
-cell_button_delete = JsCode('''
-    class BtnCellRenderer {
-        init(params) {
-            console.log(params.api.getSelectedRows());
-            this.params = params;
-            this.eGui = document.createElement('div');
-            this.eGui.innerHTML = `
-             <span>
-                <style>
-                .btn {
-                  background-color: #F94721;
-                  border: none;
-                  color: white;
-                  font-size: 10px;
-                  font-weight: bold;
-                  height: 2.5em;
-                  width: 8em;
-                  cursor: pointer;
-                }
-
-                .btn:hover {
-                  background-color: #FB6747;
-                }
-                </style>
-                <button id='click-button'
-                    class="btn"
-                    >&#128465; Delete</button>
-             </span>
-          `;
-        }
-
-        getGui() {
-            return this.eGui;
-        }
-
-    };
-''')
-gb.configure_column('Delete', headerTooltip='Klik untuk menghapus baris', editable=False, filter=False,
-                    onCellClicked=JsCode(string_to_delete), cellRenderer=cell_button_delete,
-                    autoHeight=True, suppressMovable='true')
-
-# Mengatur grid
-grid_options = gb.build()
-
-# Menampilkan grid
-AgGrid(df, gridOptions=grid_options, enable_enterprise_modules=True)
-
-st.title("Tabel dengan Tombol Tambah dan Hapus")
+# Baris data
+for i in range(5):
+    kolom1, kolom2, kolom3, kolom4, kolom5, kolom6, kolom7, kolom8, kolom9 = st.columns(9)
+    with kolom1:
+        st.write("Data 1")
+    with kolom2:
+        st.write("Data 2")
+    with kolom3:
+        st.button("Tombol 3", key=f"btn_{i}")
+    with kolom4:
+        st.write("Data 4")
+    with kolom5:
+        st.write("Data 5")
+    with kolom6:
+        st.button("Tombol 6", key=f"btn_{i}")
+    with kolom7:
+        st.write("Data 7")
+    with kolom8:
+        st.write("Data 8")
+    with kolom9:
+        st.button("Tombol 9", key=f"btn_{i}")

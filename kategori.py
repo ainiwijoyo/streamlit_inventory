@@ -5,6 +5,8 @@ import pandas as pd
 from koneksi import koneksi_db  # Mengimpor fungsi koneksi dari koneksi.py
 
 # Fungsi untuk menambahkan kategori baru dengan id_kategori yang sesuai
+
+
 def create_kategori(nama_kategori, keterangan):
     """
     Fungsi untuk menambahkan kategori baru
@@ -39,6 +41,8 @@ def create_kategori(nama_kategori, keterangan):
     return "Kategori baru berhasil ditambahkan!"
 
 # Fungsi untuk membaca semua kategori
+
+
 def read_kategori():
     """
     Fungsi untuk membaca semua kategori
@@ -55,6 +59,8 @@ def read_kategori():
     return result
 
 # Fungsi untuk memperbarui kategori
+
+
 def update_kategori(id_kategori, nama_kategori, keterangan):
     """
     Fungsi untuk memperbarui kategori
@@ -72,6 +78,8 @@ def update_kategori(id_kategori, nama_kategori, keterangan):
     return f"Kategori dengan ID {id_kategori} berhasil diperbarui!"
 
 # Fungsi untuk menghapus kategori dan menyesuaikan id_kategori
+
+
 def delete_kategori(id_kategori):
     """
     Fungsi untuk menghapus kategori
@@ -102,6 +110,8 @@ def delete_kategori(id_kategori):
     return f"Kategori Nomor {id_kategori} berhasil dihapus!"
 
 # Fungsi untuk membuat PDF dari data kategori
+
+
 def buat_pdf(kategori):
     """
     Fungsi untuk membuat PDF dari data kategori
@@ -133,8 +143,10 @@ def buat_pdf(kategori):
     return pdf_file
 
 # Aplikasi Utama untuk menampilkan semua kategori
+
+
 def tampilkan_semua_kategori():
-    st.title("KATEGORI")
+    st.title("KATEGORI BARANG")
 
     # Menampilkan kolom untuk tabel dan formulir
     col1, col2 = st.columns([3, 2])
@@ -178,7 +190,8 @@ def tampilkan_semua_kategori():
             if kategori:
                 # Buat dictionary untuk mapping nama_kategori ke id_kategori
                 kategori_dict = {kat[1]: kat[0] for kat in kategori}
-                kategori_nama = st.selectbox("Pilih Kategori", list(kategori_dict.keys()))
+                kategori_nama = st.selectbox(
+                    "Pilih Kategori", list(kategori_dict.keys()))
 
                 kategori_id = kategori_dict[kategori_nama]
 
@@ -192,11 +205,14 @@ def tampilkan_semua_kategori():
                         keterangan_lama = kat[2]
                         break
 
-                nama_kategori_baru = st.text_input("Nama Kategori Baru", nama_kategori_lama)
-                keterangan_baru = st.text_area("Keterangan Baru", keterangan_lama)
+                nama_kategori_baru = st.text_input(
+                    "Nama Kategori Baru", nama_kategori_lama)
+                keterangan_baru = st.text_area(
+                    "Keterangan Baru", keterangan_lama)
 
                 if st.button("Perbarui"):
-                    pesan = update_kategori(kategori_id, nama_kategori_baru, keterangan_baru)
+                    pesan = update_kategori(
+                        kategori_id, nama_kategori_baru, keterangan_baru)
                     tampilkan_pesan(pesan, "✅", "success")
                     st.experimental_rerun()
 
@@ -206,7 +222,8 @@ def tampilkan_semua_kategori():
             if kategori:
                 # Buat dictionary untuk mapping nama_kategori ke id_kategori
                 kategori_dict = {kat[1]: kat[0] for kat in kategori}
-                kategori_nama_hapus = st.selectbox("Pilih Kategori untuk Dihapus", list(kategori_dict.keys()))
+                kategori_nama_hapus = st.selectbox(
+                    "Pilih Kategori untuk Dihapus", list(kategori_dict.keys()))
 
                 kategori_id_hapus = kategori_dict[kategori_nama_hapus]
 
@@ -216,6 +233,8 @@ def tampilkan_semua_kategori():
                     st.experimental_rerun()
 
 # Menampilkan semua kategori dengan pencarian dan batasan tampilan
+
+
 def tampilkan_kategori():
     # Form untuk pencarian
     search_query = st.text_input("Cari Nama Kategori")
@@ -224,11 +243,13 @@ def tampilkan_kategori():
     kategori = read_kategori()
     if kategori:
         # Buat DataFrame dari hasil query dan pilih kolom yang diinginkan tanpa indeks
-        df = pd.DataFrame(kategori, columns=["ID", "Nama Kategori", "Keterangan"])
+        df = pd.DataFrame(kategori, columns=[
+                          "ID", "Nama Kategori", "Keterangan"])
 
         # Filter berdasarkan pencarian
         if search_query:
-            df = df[df["Nama Kategori"].str.contains(search_query, case=False, na=False)]
+            df = df[df["Nama Kategori"].str.contains(
+                search_query, case=False, na=False)]
 
         # Batas tampilan maksimal 10 baris
         df_tampil = df.drop(columns=["ID"])
@@ -243,7 +264,8 @@ def tampilkan_kategori():
             st.write("Kategori tidak ditemukan.")
         else:
             # Tampilkan tabel dengan scroll
-            st.dataframe(df_tampil.style.set_sticky(axis="index"), height=250, width=500)
+            st.dataframe(df_tampil.style.set_sticky(
+                axis="index"), height=250, width=500)
 
         # Buat dan simpan PDF, lalu berikan opsi untuk mengunduh
         pdf_file = buat_pdf(kategori)
@@ -256,4 +278,3 @@ def tampilkan_kategori():
             )
     else:
         st.write("Tidak ada data kategori yang ditemukan.")
-

@@ -151,7 +151,7 @@ def tampilkan_kategori():
             df = df[df["Nama Kategori"].str.contains(search_query, case=False, na=False)]
 
         # Batas tampilan maksimal 10 baris
-        df_tampil = df.drop(columns=["ID"]).head(10)
+        df_tampil = df.drop(columns=["ID"])
 
         # Hapus kolom yang kosong
         df_tampil = df_tampil.dropna(axis=1, how='all')

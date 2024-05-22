@@ -54,61 +54,84 @@ def main():
         col3.metric("Barang Keluar", "86%", "4%")
         col4.metric("Peminjaman", "96%", "4%")
 
-        # Tambahkan konten lainnya yang ingin ditampilkan setelah login di sini
+        # Menu di sidebar
         with st.sidebar:
-            st.write("<style> .option-menu-container select { font-family: 'Roboto', sans-serif; } </style>", unsafe_allow_html=True)
             selected = option_menu("PILIH MENU", ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Settings', 'Logout'], 
                                    icons=['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill', 'gear', 'door-closed'], 
                                    menu_icon="cast", 
                                    default_index=0)
-            
+
             if selected == "Master":
                 master_selected = option_menu("Master Menu", ["Kategori", "Merk", "Kondisi", "Ruangan"], 
                                               icons=['tags', 'tag', 'check2-circle', 'columns-gap'], 
                                               menu_icon="cast", 
                                               default_index=0, 
-                                              orientation="horizontal")
+                                              orientation="vertical")
 
-                if master_selected == "Kategori":
+                st.session_state.master_selected = master_selected
+            
+            elif selected == "Transaksi":
+                transaksi_selected = option_menu("Transaksi Menu", ["Barang masuk", "Barang keluar", "Barang dipinjam"], 
+                                                 icons=['box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'], 
+                                                 menu_icon="cast", 
+                                                 default_index=0, 
+                                                 orientation="vertical")
+
+                st.session_state.transaksi_selected = transaksi_selected
+            
+            elif selected == "Laporan":
+                laporan_selected = option_menu("Laporan Menu", ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"], 
+                                               icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill'], 
+                                               menu_icon="cast", 
+                                               default_index=0, 
+                                               orientation="vertical")
+
+                st.session_state.laporan_selected = laporan_selected
+
+        # Logika untuk menampilkan konten berdasarkan pilihan menu di laman utama
+        if selected == "Home":
+            st.write("Anda memilih menu Home")
+
+        elif selected == "Master":
+            if 'master_selected' in st.session_state:
+                if st.session_state.master_selected == "Kategori":
                     st.write("Anda memilih menu Kategori")
-                elif master_selected == "Merk":
+                elif st.session_state.master_selected == "Merk":
                     st.write("Anda memilih menu Merk")
-                elif master_selected == "Kondisi":
+                elif st.session_state.master_selected == "Kondisi":
                     st.write("Anda memilih menu Kondisi")
-                elif master_selected == "Ruangan":
+                elif st.session_state.master_selected == "Ruangan":
                     st.write("Anda memilih menu Ruangan")
-            
-            if selected == "Transaksi":
-                master_selected = option_menu("Transaksi Menu", ["Barang masuk", "Barang keluar", "Barang dipinjam"], 
-                                              icons=['box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'], 
-                                              menu_icon="cast", 
-                                              default_index=0, 
-                                              orientation="horizontal")
 
-                if master_selected == "Kategori":
-                    st.write("Anda memilih menu Kategori")
-                elif master_selected == "Merk":
-                    st.write("Anda memilih menu Merk")
-                elif master_selected == "Kondisi":
-                    st.write("Anda memilih menu Kondisi")
-            
-            if selected == "Laporan":
-                master_selected = option_menu("Transaksi Menu", ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"], 
-                                              icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill',], 
-                                              menu_icon="cast", 
-                                              default_index=0, 
-                                              orientation="horizontal")
+        elif selected == "Stok Barang":
+            st.write("Anda memilih menu Stok Barang")
 
-                if master_selected == "Kategori":
-                    st.write("Anda memilih menu Kategori")
-                elif master_selected == "Merk":
-                    st.write("Anda memilih menu Merk")
-                elif master_selected == "Kondisi":
-                    st.write("Anda memilih menu Kondisi")
-            
-            if selected == "Logout":
-                st.session_state.logged_in = False
-                st.experimental_rerun()
+        elif selected == "Transaksi":
+            if 'transaksi_selected' in st.session_state:
+                if st.session_state.transaksi_selected == "Barang masuk":
+                    st.write("Anda memilih menu Barang masuk")
+                elif st.session_state.transaksi_selected == "Barang keluar":
+                    st.write("Anda memilih menu Barang keluar")
+                elif st.session_state.transaksi_selected == "Barang dipinjam":
+                    st.write("Anda memilih menu Barang dipinjam")
+
+        elif selected == "Laporan":
+            if 'laporan_selected' in st.session_state:
+                if st.session_state.laporan_selected == "Laporan stok":
+                    st.write("Anda memilih menu Laporan stok")
+                elif st.session_state.laporan_selected == "Laporan masuk":
+                    st.write("Anda memilih menu Laporan masuk")
+                elif st.session_state.laporan_selected == "Laporan keluar":
+                    st.write("Anda memilih menu Laporan keluar")
+                elif st.session_state.laporan_selected == "Laporan peminjaman":
+                    st.write("Anda memilih menu Laporan peminjaman")
+
+        elif selected == "Settings":
+            st.write("Anda memilih menu Settings")
+
+        elif selected == "Logout":
+            st.session_state.logged_in = False
+            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@ from fpdf import FPDF
 import pandas as pd
 from koneksi import koneksi_db  # Mengimpor fungsi koneksi dari koneksi.py
 
+
 # Fungsi untuk menambahkan kategori baru dengan id_kategori yang sesuai
 def create_kategori(nama_kategori, keterangan):
     """

@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from koneksi import koneksi_db
+from kategori import tampilkan_semua_kategori
 
 def ambil_kredensial(username):
     """
@@ -98,7 +99,7 @@ def main():
         elif selected == "Master":
             if 'master_selected' in st.session_state:
                 if st.session_state.master_selected == "Kategori":
-                    st.write("Anda memilih menu Kategori")
+                    tampilkan_semua_kategori()  # Menampilkan seluruh fitur kategori
                 elif st.session_state.master_selected == "Merk":
                     st.write("Anda memilih menu Merk")
                 elif st.session_state.master_selected == "Kondisi":

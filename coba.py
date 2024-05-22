@@ -1,39 +1,120 @@
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 import pandas as pd
 
-# Data mahasiswa
-data = {
-    "NIM": ["A001", "A002", "A003"],
-    "Nama Mahasiswa": ["Budi", "Ani", "Caca"],
-}
+# Contoh DataFrame
+df = pd.DataFrame({
+    'Nama': ['Alice', 'Bob', 'Charlie'],
+    'Usia': [24, 27, 22]
+})
 
-df = pd.DataFrame(data)
+# Membuat GridOptionsBuilder
+gb = GridOptionsBuilder.from_dataframe(df)
 
-# Menampilkan tabel
-st.title("Tabel Mahasiswa")
-st.table(df)
+# Menambahkan kolom tombol tambah
+string_to_add_row = """
+function(e) { 
+    let api = e.api; 
+    let rowIndex = e.rowIndex + 1; 
+    api.applyTransaction({addIndex: rowIndex, add: [{}]}); 
+};
+"""
+cell_button_add = JsCode('''
+    class BtnAddCellRenderer {
+        init(params) {
+            this.params = params;
+            this.eGui = document.createElement('div');
+            this.eGui.innerHTML = `
+             <span>
+                <style>
+                .btn_add {
+                  background-color: limegreen;
+                  border: none;
+                  color: white;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 10px;
+                  font-weight: bold;
+                  height: 2.5em;
+                  width: 8em;
+                  cursor: pointer;
+                }
 
-# Menambahkan kolom Aksi
-def aksi(nim):
-    def edit():
-        # Implementasi fungsi edit data mahasiswa berdasarkan NIM             
-        pass
+                .btn_add:hover {
+                  background-color: #05d588;
+                }
+                </style>
+                <button id='click-button' 
+                    class="btn_add" 
+                    >&#x2795; Add</button>
+             </span>
+          `;
+        }
 
-    def hapus():
-        # Implementasi fungsi hapus data mahasiswa berdasarkan NIM
-        pass
+        getGui() {
+            return this.eGui;
+        }
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.button("Edit", on_click=edit)
-    with col2:
-        st.button("Hapus", on_click=hapus)
+    };
+''')
+gb.configure_column('', headerTooltip='Klik untuk menambahkan baris baru', editable=False, filter=False,
+                    onCellClicked=JsCode(string_to_add_row), cellRenderer=cell_button_add,
+                    autoHeight=True, wrapText=True, lockPosition='left')
 
-    # No need to return anything as buttons are created within the function
+# Menambahkan kolom tombol hapus
+string_to_delete = """
+function(e) { 
+    let api = e.api; 
+    let sel = api.getSelectedRows(); 
+    api.applyTransaction({remove: sel}); 
+};
+"""
+cell_button_delete = JsCode('''
+    class BtnCellRenderer {
+        init(params) {
+            console.log(params.api.getSelectedRows());
+            this.params = params;
+            this.eGui = document.createElement('div');
+            this.eGui.innerHTML = `
+             <span>
+                <style>
+                .btn {
+                  background-color: #F94721;
+                  border: none;
+                  color: white;
+                  font-size: 10px;
+                  font-weight: bold;
+                  height: 2.5em;
+                  width: 8em;
+                  cursor: pointer;
+                }
 
+                .btn:hover {
+                  background-color: #FB6747;
+                }
+                </style>
+                <button id='click-button'
+                    class="btn"
+                    >&#128465; Delete</button>
+             </span>
+          `;
+        }
 
+        getGui() {
+            return this.eGui;
+        }
 
-df["Aksi"] = df["NIM"].apply(aksi)
+    };
+''')
+gb.configure_column('Delete', headerTooltip='Klik untuk menghapus baris', editable=False, filter=False,
+                    onCellClicked=JsCode(string_to_delete), cellRenderer=cell_button_delete,
+                    autoHeight=True, suppressMovable='true')
 
-# Menampilkan tabel dengan kolom Aksi
-st.table(df)
+# Mengatur grid
+grid_options = gb.build()
+
+# Menampilkan grid
+AgGrid(df, gridOptions=grid_options, enable_enterprise_modules=True)
+
+st.title("Tabel dengan Tombol Tambah dan Hapus")

@@ -1,21 +1,8 @@
 import streamlit as st
-import mysql.connector
 import time
 from fpdf import FPDF
 import pandas as pd
-
-# Fungsi untuk menghubungkan ke database MySQL
-def koneksi_db():
-    """
-    Fungsi untuk menghubungkan ke database MySQL
-    """
-    db = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="",
-        database="db_stinven"
-    )
-    return db
+from koneksi import koneksi_db  # Mengimpor fungsi koneksi dari koneksi.py
 
 # Fungsi untuk menambahkan kategori baru dengan id_kategori yang sesuai
 def create_kategori(nama_kategori, keterangan):
@@ -148,18 +135,36 @@ def buat_pdf(kategori):
 # Aplikasi Utama
 st.title("KATEGORI")
 
-# Menampilkan semua kategori
+# Menampilkan semua kategori dengan pencarian dan batasan tampilan
 def tampilkan_kategori():
+    # Form untuk pencarian
+    search_query = st.text_input("Cari Nama Kategori")
+
+    # Membaca data dari database
     kategori = read_kategori()
     if kategori:
         # Buat DataFrame dari hasil query dan pilih kolom yang diinginkan tanpa indeks
         df = pd.DataFrame(kategori, columns=["ID", "Nama Kategori", "Keterangan"])
-        df.index += 1
 
-        df_tampil = df.drop(columns=["ID"])
+        # Filter berdasarkan pencarian
+        if search_query:
+            df = df[df["Nama Kategori"].str.contains(search_query, case=False, na=False)]
 
-        st.table(df_tampil)
-        
+        # Batas tampilan maksimal 10 baris
+        df_tampil = df.drop(columns=["ID"]).head(10)
+
+        # Hapus kolom yang kosong
+        df_tampil = df_tampil.dropna(axis=1, how='all')
+
+        # Set index mulai dari 1
+        df_tampil.index = range(1, len(df_tampil) + 1)
+
+        if df_tampil.empty:
+            st.write("Kategori tidak ditemukan.")
+        else:
+            # Tampilkan tabel dengan scroll
+            st.dataframe(df_tampil.style.set_sticky(axis="index"), height=250, width=500)
+
         # Buat dan simpan PDF, lalu berikan opsi untuk mengunduh
         pdf_file = buat_pdf(kategori)
         with open(pdf_file, "rb") as file:
@@ -172,69 +177,81 @@ def tampilkan_kategori():
     else:
         st.write("Tidak ada data kategori yang ditemukan.")
 
-tampilkan_kategori()
+# Menampilkan kolom untuk tabel dan formulir
+col1, col2 = st.columns([3, 2])
 
-def tampilkan_pesan(pesan, icon, warna, waktu_tunda=3):
-    placeholder = st.empty()
-    if warna == "success":
-        placeholder.success(pesan, icon=icon)
-    elif warna == "warning":
-        placeholder.warning(pesan, icon=icon)
-    time.sleep(waktu_tunda)
-    placeholder.empty()
+# Tampilkan tabel di kolom kiri
+with col1:
+    tampilkan_kategori()
 
-# Bagian untuk menambah kategori baru
-with st.expander("Tambah Kategori Baru"):
-    nama_kategori = st.text_input("Nama Kategori")
-    keterangan = st.text_area("Keterangan")
+# Tampilkan formulir di kolom kanan
+with col2:
 
-    if st.button("Tambah"):
-        pesan = create_kategori(nama_kategori, keterangan)
-        if "berhasil" in pesan:
-            tampilkan_pesan(pesan, "✅", "success")
-            st.experimental_rerun()
-        else:
-            tampilkan_pesan(pesan, "⚠️", "warning")
+    # Menambahkan jarak ke bawah
+    for _ in range(2):
+        st.write("")
 
-# Bagian untuk memperbarui kategori
-with st.expander("Perbarui Kategori"):
-    kategori = read_kategori()
-    if kategori:
-        # Buat dictionary untuk mapping nama_kategori ke id_kategori
-        kategori_dict = {kat[1]: kat[0] for kat in kategori}
-        kategori_nama = st.selectbox("Pilih Kategori", list(kategori_dict.keys()))
+    def tampilkan_pesan(pesan, icon, warna, waktu_tunda=3):
+        placeholder = st.empty()
+        if warna == "success":
+            placeholder.success(pesan, icon=icon)
+        elif warna == "warning":
+            placeholder.warning(pesan, icon=icon)
+        time.sleep(waktu_tunda)
+        placeholder.empty()
 
-        kategori_id = kategori_dict[kategori_nama]
+    # Bagian untuk menambah kategori baru
+    with st.expander("Tambah Kategori Baru", expanded=False):
+        nama_kategori = st.text_input("Nama Kategori")
+        keterangan = st.text_area("Keterangan")
 
-        # Menambah definisi awal untuk variabel nama_kategori_lama dan keterangan_lama di luar loop
-        nama_kategori_lama = ""
-        keterangan_lama = ""
+        if st.button("Tambah"):
+            pesan = create_kategori(nama_kategori, keterangan)
+            if "berhasil" in pesan:
+                tampilkan_pesan(pesan, "✅", "success")
+                st.experimental_rerun()
+            else:
+                tampilkan_pesan(pesan, "⚠️", "warning")
 
-        for kat in kategori:
-            if kat[0] == kategori_id:
-                nama_kategori_lama = kat[1]
-                keterangan_lama = kat[2]
-                break
+    # Bagian untuk memperbarui kategori
+    with st.expander("Perbarui Kategori", expanded=False):
+        kategori = read_kategori()
+        if kategori:
+            # Buat dictionary untuk mapping nama_kategori ke id_kategori
+            kategori_dict = {kat[1]: kat[0] for kat in kategori}
+            kategori_nama = st.selectbox("Pilih Kategori", list(kategori_dict.keys()))
 
-        nama_kategori_baru = st.text_input("Nama Kategori Baru", nama_kategori_lama)
-        keterangan_baru = st.text_area("Keterangan Baru", keterangan_lama)
+            kategori_id = kategori_dict[kategori_nama]
 
-        if st.button("Perbarui"):
-            pesan = update_kategori(kategori_id, nama_kategori_baru, keterangan_baru)
-            tampilkan_pesan(pesan, "✅", "success")
-            st.experimental_rerun()
+            # Menambah definisi awal untuk variabel nama_kategori_lama dan keterangan_lama di luar loop
+            nama_kategori_lama = ""
+            keterangan_lama = ""
 
-# Bagian untuk menghapus kategori
-with st.expander("Hapus Kategori"):
-    kategori = read_kategori()
-    if kategori:
-        # Buat dictionary untuk mapping nama_kategori ke id_kategori
-        kategori_dict = {kat[1]: kat[0] for kat in kategori}
-        kategori_nama_hapus = st.selectbox("Pilih Kategori untuk Dihapus", list(kategori_dict.keys()))
+            for kat in kategori:
+                if kat[0] == kategori_id:
+                    nama_kategori_lama = kat[1]
+                    keterangan_lama = kat[2]
+                    break
 
-        kategori_id_hapus = kategori_dict[kategori_nama_hapus]
+            nama_kategori_baru = st.text_input("Nama Kategori Baru", nama_kategori_lama)
+            keterangan_baru = st.text_area("Keterangan Baru", keterangan_lama)
 
-        if st.button("Hapus"):
-            pesan = delete_kategori(kategori_id_hapus)
-            tampilkan_pesan(pesan, "✅", "success")
-            st.experimental_rerun()
+            if st.button("Perbarui"):
+                pesan = update_kategori(kategori_id, nama_kategori_baru, keterangan_baru)
+                tampilkan_pesan(pesan, "✅", "success")
+                st.experimental_rerun()
+
+    # Bagian untuk menghapus kategori
+    with st.expander("Hapus Kategori", expanded=False):
+        kategori = read_kategori()
+        if kategori:
+            # Buat dictionary untuk mapping nama_kategori ke id_kategori
+            kategori_dict = {kat[1]: kat[0] for kat in kategori}
+            kategori_nama_hapus = st.selectbox("Pilih Kategori untuk Dihapus", list(kategori_dict.keys()))
+
+            kategori_id_hapus = kategori_dict[kategori_nama_hapus]
+
+            if st.button("Hapus"):
+                pesan = delete_kategori(kategori_id_hapus)
+                tampilkan_pesan(pesan, "✅", "success")
+                st.experimental_rerun()

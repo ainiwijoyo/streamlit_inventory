@@ -62,29 +62,32 @@ def main():
                                    default_index=0)
 
             if selected == "Master":
-                master_selected = option_menu("Master Menu", ["Kategori", "Merk", "Kondisi", "Ruangan"], 
+                st.write("### Master Menu")
+                master_selected = option_menu(None, ["Kategori", "Merk", "Kondisi", "Ruangan"], 
                                               icons=['tags', 'tag', 'check2-circle', 'columns-gap'], 
                                               menu_icon="cast", 
                                               default_index=0, 
-                                              orientation="vertical")
+                                              orientation="horizontal")
 
                 st.session_state.master_selected = master_selected
             
             elif selected == "Transaksi":
-                transaksi_selected = option_menu("Transaksi Menu", ["Barang masuk", "Barang keluar", "Barang dipinjam"], 
+                st.write("### Transaksi Menu")
+                transaksi_selected = option_menu(None, ["Barang masuk", "Barang keluar", "Barang dipinjam"], 
                                                  icons=['box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'], 
                                                  menu_icon="cast", 
                                                  default_index=0, 
-                                                 orientation="vertical")
+                                                 orientation="horizontal")
 
                 st.session_state.transaksi_selected = transaksi_selected
             
             elif selected == "Laporan":
-                laporan_selected = option_menu("Laporan Menu", ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"], 
+                st.write("### Laporan Menu")
+                laporan_selected = option_menu(None, ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"], 
                                                icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill'], 
                                                menu_icon="cast", 
                                                default_index=0, 
-                                               orientation="vertical")
+                                               orientation="horizontal")
 
                 st.session_state.laporan_selected = laporan_selected
 

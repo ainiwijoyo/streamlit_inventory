@@ -1,27 +1,36 @@
 import streamlit as st
+import pandas as pd
+import mysql.connector
+from koneksi import koneksi_db
 
-# Baris nama kolom
-kolom = ["Kolom 1", "Kolom 2", "Kolom 3", "Kolom 4", "Kolom 5", "Kolom 6", "Kolom 7", "Kolom 8", "Kolom 9"]
-st.write(kolom)
+# Fungsi untuk mengambil data dari tabel tb_barang
+def get_data():
+    db = koneksi_db()
+    cursor = db.cursor()
+    query = "SELECT * FROM tb_barang"
+    cursor.execute(query)
+    data = cursor.fetchall()
+    
+    # Mendapatkan nama kolom dari tabel
+    column_names = [i[0] for i in cursor.description]
+    
+    # Membuat DataFrame
+    df = pd.DataFrame(data, columns=column_names)
+    
+    cursor.close()
+    db.close()
+    
+    return df
 
-# Baris data
-for i in range(5):
-    kolom1, kolom2, kolom3, kolom4, kolom5, kolom6, kolom7, kolom8, kolom9 = st.columns(9)
-    with kolom1:
-        st.write("Data 1")
-    with kolom2:
-        st.write("Data 2")
-    with kolom3:
-        st.button("Tombol 3", key=f"btn_{i}")
-    with kolom4:
-        st.write("Data 4")
-    with kolom5:
-        st.write("Data 5")
-    with kolom6:
-        st.button("Tombol 6", key=f"btn_{i}")
-    with kolom7:
-        st.write("Data 7")
-    with kolom8:
-        st.write("Data 8")
-    with kolom9:
-        st.button("Tombol 9", key=f"btn_{i}")
+# Tampilan Streamlit
+st.title("Data Tabel tb_barang")
+
+# Mengambil data dari database
+df = get_data()
+
+# Cek apakah DataFrame kosong
+if df.empty:
+    st.write("Tidak ditemukan data barang")
+else:
+    # Menampilkan data dalam bentuk tabel
+    st.dataframe(df)

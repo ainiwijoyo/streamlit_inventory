@@ -8,7 +8,7 @@ def get_data():
     db = koneksi_db()
     cursor = db.cursor()
     query = """
-        SELECT tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, tb_kondisi.nama_kondisi, 
+        SELECT tb_barang.id_barang, tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, tb_kondisi.nama_kondisi, 
         tb_barang.jumlah_awal, 
         (tb_barang.jumlah_awal + COALESCE(SUM(CASE 
             WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah 
@@ -28,7 +28,7 @@ def get_data():
     """
     cursor.execute(query)
     data = cursor.fetchall()
-    column_names = ["NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN", "KONDISI", "JML AWAL", "JML SKARANG", "TGL PENGADAAN", "KETERANGAN"]
+    column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN", "KONDISI", "JML AWAL", "JML SKARANG", "TGL PENGADAAN", "KETERANGAN"]
     df = pd.DataFrame(data, columns=column_names)
     cursor.close()
     db.close()
@@ -56,21 +56,21 @@ def get_referensi_data():
     
     return merek_data, kategori_data, ruangan_data, kondisi_data
 
-# Fungsi untuk menambah atau mengubah data barang
-def submit_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
+# Fungsi untuk menambah data barang dengan validasi data yang sudah ada
+def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
     db = koneksi_db()
     cursor = db.cursor()
-    
-    # Cek apakah barang dengan nama, merek, dan kategori yang sama sudah ada
-    query = """
+
+    # Cek apakah data sudah ada
+    query_check = """
         SELECT COUNT(*) FROM tb_barang 
-        WHERE nama_barang = %s AND id_merek = %s AND id_kategori = %s
+        WHERE nama_barang = %s AND id_merek = %s AND id_kategori = %s AND id_ruangan = %s
     """
-    cursor.execute(query, (nama_barang, id_merek, id_kategori))
+    cursor.execute(query_check, (nama_barang, id_merek, id_kategori, id_ruangan))
     count = cursor.fetchone()[0]
-    
+
     if count > 0:
-        st.warning("Barang dengan nama, merek, dan kategori yang sama sudah ada!")
+        st.warning("Data sudah ada sebelumnya!")
     else:
         # Menyesuaikan ID Barang agar berurutan
         query = "SELECT COALESCE(MAX(id_barang), 0) + 1 FROM tb_barang"
@@ -84,6 +84,23 @@ def submit_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, juml
         cursor.execute(query, (next_id, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang))
         db.commit()
         st.success("Data barang berhasil ditambahkan!")
+    
+    cursor.close()
+    db.close()
+
+# Fungsi untuk mengubah data barang
+def update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
+    db = koneksi_db()
+    cursor = db.cursor()
+
+    query = """
+        UPDATE tb_barang 
+        SET nama_barang = %s, id_merek = %s, id_kategori = %s, id_ruangan = %s, id_kondisi = %s, jumlah_awal = %s, keterangan_barang = %s, tanggal_barang = %s
+        WHERE id_barang = %s
+    """
+    cursor.execute(query, (nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang, id_barang))
+    db.commit()
+    st.success("Data barang berhasil diubah!")
     
     cursor.close()
     db.close()
@@ -107,7 +124,7 @@ def delete_data(id_barang):
     st.success("Data barang berhasil dihapus!")
 
 # Tampilan Streamlit
-st.title("DATA BARANG")
+st.title("Data Barang")
 
 # Mengambil data dari database
 df = get_data()
@@ -116,70 +133,77 @@ df = get_data()
 if df.empty:
     st.write("Tidak ditemukan data barang")
 else:
-    # Menetapkan ulang indeks DataFrame mulai dari 1
-    df.index = range(1, len(df) + 1)
+    # Menghapus kolom "ID Barang"
+    df_display = df.drop(columns=["ID Barang"])
+    # Mengatur indeks nomor dimulai dari 1
+    df_display.index = df_display.index + 1
     # Menampilkan data dalam bentuk tabel
-    st.dataframe(df)
-    
+    st.dataframe(df_display)
 
 # Mengambil data referensi untuk dropdown
 merek_data, kategori_data, ruangan_data, kondisi_data = get_referensi_data()
 
-# Sidebar untuk form tambah/edit barang
-with st.sidebar:
-    st.header("Form Barang")
-    form_mode = st.radio("Mode", ["Tambah", "Edit", "Hapus"])
+# Membuat daftar pilihan untuk edit dan hapus
+pilihan_edit = [f"{row['ID Barang']} - {row['NAMA BARANG']}" for idx, row in df.iterrows()]
+pilihan_hapus = [f"{row['ID Barang']} - {row['NAMA BARANG']}" for idx, row in df.iterrows()]
+
+# Dropdown untuk Tambah Barang
+st.header("Tambah Barang")
+with st.expander("Tambah Barang"):
+    nama_barang = st.text_input("Nama Barang", key="nama_barang_tambah")
+    id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], key="merek_tambah")
+    id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], key="kategori_tambah")
+    id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], key="ruangan_tambah")
+    id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], key="kondisi_tambah")
+    jumlah_awal = st.number_input("Jumlah Awal", min_value=0, key="jumlah_awal_tambah")
+    keterangan_barang = st.text_area("Keterangan Barang", key="keterangan_tambah")
+    tanggal_barang = st.date_input("Tanggal Barang", key="tanggal_tambah")
     
-    if form_mode == "Edit":
-        if df.empty:
-            st.warning("Tidak ada data untuk diedit.")
-        else:
-            id_barang = st.selectbox("Pilih Barang untuk Edit", df['NAMA BARANG'])
-            selected_item = df[df['NAMA BARANG'] == id_barang].iloc[0]
-            nama_barang = st.text_input("Nama Barang", selected_item['NAMA BARANG'])
-            id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[merek[1] for merek in merek_data].index(selected_item['MEREK']))
-            id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']))
-            id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']))
-            id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']))
-            jumlah_awal = st.number_input("Jumlah Awal", value=selected_item['JML AWAL'])
-            keterangan_barang = st.text_area("Keterangan Barang", selected_item['KETERANGAN'])
-            tanggal_barang = st.date_input("Tanggal Barang", selected_item['TGL PENGADAAN'])
-            
-            if st.button("Simpan Perubahan"):
-                id_merek = next(merek[0] for merek in merek_data if merek[1] == id_merek)
-                id_kategori = next(kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
-                id_ruangan = next(ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
-                id_kondisi = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
-                
-                submit_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
-                st.success("Data barang berhasil diubah!")
-                st.experimental_rerun()
-    
-    elif form_mode == "Tambah":
-        nama_barang = st.text_input("Nama Barang")
-        id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data])
-        id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data])
-        id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data])
-        id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data])
-        jumlah_awal = st.number_input("Jumlah Awal", min_value=0)
-        keterangan_barang = st.text_area("Keterangan Barang")
-        tanggal_barang = st.date_input("Tanggal Barang")
+    if st.button("Tambah Barang", key="tambah_button"):
+        id_merek = next(merek[0] for merek in merek_data if merek[1] == id_merek)
+        id_kategori = next(kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
+        id_ruangan = next(ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
+        id_kondisi = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
         
-        if st.button("Tambah Barang"):
+        add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
+        st.experimental_rerun()
+
+# Dropdown untuk Edit Barang
+with st.expander("Edit Barang"):
+    if df.empty:
+        st.warning("Tidak ada data untuk diedit.")
+    else:
+        pilihan_edit_dict = {f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
+        pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit", list(pilihan_edit_dict.keys()), key="barang_edit")
+        id_barang = pilihan_edit_dict[pilihan_edit_str]
+        selected_item = df[df['ID Barang'] == id_barang].iloc[0]
+        nama_barang = st.text_input("Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
+        id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
+        id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
+        id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
+        id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']), key="kondisi_edit")
+        jumlah_awal = st.number_input("Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
+        keterangan_barang = st.text_area("Keterangan Barang", selected_item['KETERANGAN'], key="keterangan_edit")
+        tanggal_barang = st.date_input("Tanggal Barang", selected_item['TGL PENGADAAN'], key="tanggal_edit")
+        
+        if st.button("Simpan Perubahan", key="simpan_perubahan_button"):
             id_merek = next(merek[0] for merek in merek_data if merek[1] == id_merek)
             id_kategori = next(kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
             id_ruangan = next(ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
             id_kondisi = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
             
-            submit_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
+            update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
             st.experimental_rerun()
-    
-    elif form_mode == "Hapus":
-        if df.empty:
-            st.warning("Tidak ada data untuk dihapus.")
-        else:
-            id_barang = st.selectbox("Pilih Barang untuk Dihapus", df['NAMA BARANG'])
-            
-            if st.button("Hapus Barang"):
-                delete_data(id_barang)
-                st.experimental_rerun()
+
+# Dropdown untuk Hapus Barang
+with st.expander("Hapus Barang"):
+    if df.empty:
+        st.warning("Tidak ada data untuk dihapus.")
+    else:
+        pilihan_hapus_dict = {f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
+        pilihan_hapus_str = st.selectbox("Pilih Barang untuk Dihapus", list(pilihan_hapus_dict.keys()), key="barang_hapus")
+        id_barang = pilihan_hapus_dict[pilihan_hapus_str]
+        
+        if st.button("Hapus Barang", key="hapus_button"):
+            delete_data(id_barang)
+            st.experimental_rerun()

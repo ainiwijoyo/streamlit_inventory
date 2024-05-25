@@ -157,34 +157,14 @@ def delete_data(id_barang):
     show_message("success", "Data barang berhasil dihapus!")
 
 
-# Tampilan Streamlit
-st.title("DATA BARANG")
-
-# Mengambil data dari database
-df = get_data()
-
-# Cek apakah DataFrame kosong
-if df.empty:
-    st.write("Tidak ditemukan data barang")
-else:
-    # Menghapus kolom "ID Barang"
-    df_display = df.drop(columns=["ID Barang"])
-    # Mengatur indeks nomor dimulai dari 1
-    df_display.index = df_display.index + 1
-    # Menampilkan data dalam bentuk tabel
-    st.dataframe(df_display)
-
 # Mengambil data referensi untuk dropdown
 merek_data, kategori_data, ruangan_data, kondisi_data = get_referensi_data()
 
-# Membuat daftar pilihan untuk edit dan hapus
-pilihan_edit = [
-    f"{row['ID Barang']} - {row['NAMA BARANG']}" for idx, row in df.iterrows()]
-pilihan_hapus = [
-    f"{row['ID Barang']} - {row['NAMA BARANG']}" for idx, row in df.iterrows()]
+# Tampilan Streamlit
+st.title("DATA BARANG")
 
-# Dropdown untuk Tambah Barang
-with st.expander("Tambah Barang"):
+# Bagian untuk popover Tambah Barang di atas form pencarian
+with st.popover("Tambah Barang"):
     nama_barang = st.text_input("Nama Barang", key="nama_barang_tambah")
     id_merek = st.selectbox("Merek", [merek[1]
                             for merek in merek_data], key="merek_tambah")
@@ -214,55 +194,94 @@ with st.expander("Tambah Barang"):
                  id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
         st.experimental_rerun()
 
-# Dropdown untuk Edit Barang
-if not df.empty:
-    with st.expander("Edit Barang"):
-        pilihan_edit_dict = {
-            f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
-        pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit", list(
-            pilihan_edit_dict.keys()), key="barang_edit")
-        id_barang = pilihan_edit_dict[pilihan_edit_str]
-        selected_item = df[df['ID Barang'] == id_barang].iloc[0]
-        nama_barang = st.text_input(
-            "Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
-        id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[
-                                merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
-        id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[
-                                   kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
-        id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[
-                                  ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
-        id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[
-                                  kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']), key="kondisi_edit")
-        jumlah_awal = st.number_input(
-            "Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
-        keterangan_barang = st.text_area(
-            "Keterangan Barang", selected_item['KETERANGAN'], key="keterangan_edit")
-        tanggal_barang = st.date_input(
-            "Tanggal Barang", selected_item['TGL PENGADAAN'], key="tanggal_edit")
+# Mengambil data dari database
+df = get_data()
 
-        if st.button("Simpan Perubahan", key="simpan_perubahan_button"):
-            id_merek = next(merek[0]
-                            for merek in merek_data if merek[1] == id_merek)
-            id_kategori = next(
-                kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
-            id_ruangan = next(
-                ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
-            id_kondisi = next(
-                kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
+# Baris layout untuk pencarian, edit, dan hapus barang
+col1, col2 = st.columns([3, 1])
 
-            update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan,
-                        id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
-            st.experimental_rerun()
+with col1:
+    # Cek apakah DataFrame kosong
+    if not df.empty:
+        # Input teks untuk pencarian nama barang
+        search_query = st.text_input("Cari Nama Barang", "")
 
-# Dropdown untuk Hapus Barang
-if not df.empty:
-    with st.expander("Hapus Barang"):
-        pilihan_hapus_dict = {
-            f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
-        pilihan_hapus_str = st.selectbox("Pilih Barang untuk Dihapus", list(
-            pilihan_hapus_dict.keys()), key="barang_hapus")
-        id_barang = pilihan_hapus_dict[pilihan_hapus_str]
+        # Jika ada pencarian, filter data berdasarkan query
+        if search_query:
+            df = df[df['NAMA BARANG'].str.contains(
+                search_query, case=False, na=False)]
 
-        if st.button("Hapus Barang", key="hapus_button"):
-            delete_data(id_barang)
-            st.experimental_rerun()
+        # Jika ada data setelah filter, tampilkan dalam bentuk tabel
+        if not df.empty:
+            # Menghapus kolom "ID Barang"
+            df_display = df.drop(columns=["ID Barang"])
+            # Mengatur indeks nomor dimulai dari 1
+            df_display.index = df_display.index + 1
+            # Menampilkan data dalam bentuk tabel
+            st.dataframe(df_display)
+        else:
+            st.write(
+                "Tidak ditemukan data barang yang sesuai dengan kriteria pencarian.")
+    else:
+        st.write("Tidak ditemukan data barang")
+
+# Bagian untuk popover Edit Barang dan Expander Hapus Barang
+with col2:
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+
+    # Popover untuk Edit Barang
+    if not df.empty:
+        with st.popover("Edit Barang"):
+            pilihan_edit_dict = {
+                f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
+            pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit", list(
+                pilihan_edit_dict.keys()), key="barang_edit")
+            id_barang = pilihan_edit_dict[pilihan_edit_str]
+            selected_item = df[df['ID Barang'] == id_barang].iloc[0]
+
+            nama_barang = st.text_input(
+                "Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
+            id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[
+                                    merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
+            id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[
+                                       kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
+            id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[
+                                      ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
+            id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[
+                                      kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']), key="kondisi_edit")
+            jumlah_awal = st.number_input(
+                "Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
+            keterangan_barang = st.text_area(
+                "Keterangan Barang", selected_item['KETERANGAN'], key="keterangan_edit")
+            tanggal_barang = st.date_input(
+                "Tanggal Barang", selected_item['TGL PENGADAAN'], key="tanggal_edit")
+            if st.button("Simpan Perubahan", key="simpan_perubahan_button"):
+                id_merek = next(merek[0]
+                                for merek in merek_data if merek[1] == id_merek)
+                id_kategori = next(
+                    kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
+                id_ruangan = next(
+                    ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
+                id_kondisi = next(
+                    kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
+
+                update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan,
+                            id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
+                st.experimental_rerun()
+
+    # Expander untuk Hapus Barang
+    if not df.empty:
+        with st.expander("Hapus Barang"):
+            pilihan_hapus_dict = {
+                f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
+            pilihan_hapus_str = st.selectbox("Pilih Barang untuk Dihapus", list(
+                pilihan_hapus_dict.keys()), key="barang_hapus")
+            id_barang = pilihan_hapus_dict[pilihan_hapus_str]
+
+            if st.button("Hapus Barang", key="hapus_button"):
+                delete_data(id_barang)
+                st.experimental_rerun()

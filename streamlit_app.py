@@ -5,6 +5,7 @@ from kategori import tampilkan_semua_kategori
 from merek import tampilkan_semua_merek
 from kondisi import tampilkan_semua_kondisi
 from ruangan import tampilkan_semua_ruangan
+from barang import tampilkan_data_barang
 
 def ambil_kredensial(username):
     """
@@ -119,7 +120,7 @@ def main():
                     tampilkan_semua_ruangan() # Menampilkan ruangan
 
         elif selected == "Stok Barang":
-            st.write("Anda memilih menu Stok Barang")
+            tampilkan_data_barang()
 
         elif selected == "Transaksi":
             if 'transaksi_selected' in st.session_state:

@@ -6,6 +6,8 @@ from merek import tampilkan_semua_merek
 from kondisi import tampilkan_semua_kondisi
 from ruangan import tampilkan_semua_ruangan
 from barang import tampilkan_data_barang
+from barang_masuk import tampilkan_barang_masuk
+
 
 def ambil_kredensial(username):
     """
@@ -113,11 +115,11 @@ def main():
                 if st.session_state.master_selected == "Kategori":
                     tampilkan_semua_kategori()  # Menampilkan kategori
                 elif st.session_state.master_selected == "Merk":
-                    tampilkan_semua_merek() # Menampilkan merek
+                    tampilkan_semua_merek()  # Menampilkan merek
                 elif st.session_state.master_selected == "Kondisi":
-                    tampilkan_semua_kondisi() # Menampilkan kondisi
+                    tampilkan_semua_kondisi()  # Menampilkan kondisi
                 elif st.session_state.master_selected == "Ruangan":
-                    tampilkan_semua_ruangan() # Menampilkan ruangan
+                    tampilkan_semua_ruangan()  # Menampilkan ruangan
 
         elif selected == "Stok Barang":
             tampilkan_data_barang()
@@ -125,7 +127,7 @@ def main():
         elif selected == "Transaksi":
             if 'transaksi_selected' in st.session_state:
                 if st.session_state.transaksi_selected == "Barang masuk":
-                    st.write("Anda memilih menu Barang masuk")
+                    tampilkan_barang_masuk()
                 elif st.session_state.transaksi_selected == "Barang keluar":
                     st.write("Anda memilih menu Barang keluar")
                 elif st.session_state.transaksi_selected == "Barang dipinjam":

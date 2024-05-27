@@ -18,37 +18,45 @@ def get_data_barang():
 # Fungsi untuk mendapatkan data dari tabel tb_ruangan
 def get_nama_ruangan(id_ruangan):
     cursor.execute("SELECT nama_ruangan FROM tb_ruangan WHERE id_ruangan = %s", (id_ruangan,))
-    return cursor.fetchone()[0]
+    result = cursor.fetchone()
+    return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_merek
 def get_nama_merek(id_merek):
     cursor.execute("SELECT nama_merek FROM tb_merek WHERE id_merek = %s", (id_merek,))
-    return cursor.fetchone()[0]
+    result = cursor.fetchone()
+    return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kategori
 def get_nama_kategori(id_kategori):
     cursor.execute("SELECT nama_kategori FROM tb_kategori WHERE id_kategori = %s", (id_kategori,))
-    return cursor.fetchone()[0]
+    result = cursor.fetchone()
+    return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kondisi
 def get_nama_kondisi(id_kondisi):
     cursor.execute("SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
-    return cursor.fetchone()[0]
+    result = cursor.fetchone()
+    return result[0] if result else None
 
 # Fungsi untuk menambah data barang masuk
 def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan):
     # Ambil id_ruangan dari tb_barang berdasarkan id_barang yang dipilih
     cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
-    id_ruangan = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    id_ruangan = result[0] if result else None
 
-    # Masukkan data ke dalam tb_transaksi dengan id_ruangan
-    cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s)",
-                   (id_barang, jumlah, tanggal, keterangan, id_ruangan))
-    db.commit()
+    if id_ruangan:
+        # Masukkan data ke dalam tb_transaksi dengan id_ruangan
+        cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s)",
+                    (id_barang, jumlah, tanggal, keterangan, id_ruangan))
+        db.commit()
 
-    # Perbarui jumlah barang di tb_barang
-    cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
-    db.commit()
+        # Perbarui jumlah barang di tb_barang
+        cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
+        db.commit()
+    else:
+        st.error("Gagal menambahkan barang masuk: Ruangan tidak ditemukan.")
 
 # Fungsi untuk mendapatkan data transaksi
 def get_data_transaksi():
@@ -93,49 +101,69 @@ def hapus_barang_masuk(id_transaksi):
     cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
     db.commit()
 
+# Fungsi untuk membersihkan data transaksi yang tidak valid
+def bersihkan_data_transaksi():
+    cursor.execute("""
+        DELETE FROM tb_transaksi
+        WHERE id_barang NOT IN (SELECT id_barang FROM tb_barang)
+    """)
+    db.commit()
+
 def tampilkan_barang_masuk():
     st.title("BARANG MASUK")
+
+    # Bersihkan data transaksi yang tidak valid sebelum menampilkan data
+    bersihkan_data_transaksi()
 
     # Tambah Barang Masuk
     tambah_barang_masuk_popover = st.popover("Tambah Barang Masuk")
     with tambah_barang_masuk_popover:
-        with st.form("form_tambah_barang"):
-            tanggal = st.date_input("Tanggal", datetime.now())
-            data_barang = get_data_barang()
-            pilihan_barang = {f"{barang[1]} - {get_nama_ruangan(barang[2])}": barang[0] for barang in data_barang}
-            barang_terpilih = st.selectbox("Barang", list(pilihan_barang.keys()))
-            id_barang = pilihan_barang[barang_terpilih]
-            
-            # Mengambil informasi terkait barang yang dipilih
-            selected_barang = None
-            for barang in data_barang:
-                if barang[0] == id_barang:
-                    selected_barang = barang
-                    break
+        if st.button("Muat Ulang Form"):
+            st.experimental_rerun()
+        else:
+            with st.form("form_tambah_barang"):
+                tanggal = st.date_input("Tanggal", datetime.now())
+                data_barang = get_data_barang()
+                if data_barang:
+                    pilihan_barang = {f"{barang[1]} - {get_nama_ruangan(barang[2])}": barang[0] for barang in data_barang}
+                    barang_terpilih = st.selectbox("Barang", list(pilihan_barang.keys()))
+                    id_barang = pilihan_barang.get(barang_terpilih)
+                    
+                    if id_barang:
+                        # Mengambil informasi terkait barang yang dipilih
+                        selected_barang = None
+                        for barang in data_barang:
+                            if barang[0] == id_barang:
+                                selected_barang = barang
+                                break
 
-            ruangan = get_nama_ruangan(selected_barang[2])
-            st.text_input("Ruangan", ruangan, disabled=True)
-            merek = get_nama_merek(selected_barang[3])
-            st.text_input("Merek", merek, disabled=True)
-            kategori = get_nama_kategori(selected_barang[4])
-            st.text_input("Kategori", kategori, disabled=True)
-            kondisi = get_nama_kondisi(selected_barang[5])
-            st.text_input("Kondisi", kondisi, disabled=True)
-            jumlah_saat_ini = selected_barang[6]
-            st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
-            jumlah = st.number_input("Jumlah", min_value=1, step=1)
-            keterangan = st.text_area("Keterangan")
-            submit = st.form_submit_button("Tambah")
+                        if selected_barang:
+                            ruangan = get_nama_ruangan(selected_barang[2])
+                            st.text_input("Ruangan", ruangan, disabled=True)
+                            merek = get_nama_merek(selected_barang[3])
+                            st.text_input("Merek", merek, disabled=True)
+                            kategori = get_nama_kategori(selected_barang[4])
+                            st.text_input("Kategori", kategori, disabled=True)
+                            kondisi = get_nama_kondisi(selected_barang[5])
+                            st.text_input("Kondisi", kondisi, disabled=True)
+                            jumlah_saat_ini = selected_barang[6]
+                            st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
+                            jumlah = st.number_input("Jumlah", min_value=1, step=1)
+                            keterangan = st.text_area("Keterangan")
+                            submit = st.form_submit_button("Tambah")
 
-        if submit:
-            if keterangan.strip() == "":
-                st.error("Form keterangan tidak boleh kosong!")
-            else:
-                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan)
-                pesan_berhasil = st.success("Barang masuk berhasil ditambahkan!")
-                time.sleep(2)  # Menunggu 2 detik
-                pesan_berhasil.empty()  # Menghapus pesan berhasil setelah 2 detik
-                st.experimental_rerun()
+                        if submit:
+                            if keterangan.strip() == "":
+                                st.error("Form keterangan tidak boleh kosong!")
+                            else:
+                                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan)
+                                st.success("Barang masuk berhasil ditambahkan!")
+                                time.sleep(2)  # Menunggu 2 detik
+                                st.experimental_rerun()
+                    else:
+                        st.warning("Tidak ada barang yang tersedia.")
+                else:
+                    st.warning("Tidak ada data barang yang tersedia.")
 
     # Tampilkan DataFrame dari transaksi barang masuk
     df_transaksi = get_data_transaksi()
@@ -149,7 +177,7 @@ def tampilkan_barang_masuk():
         hapus_barang_masuk_popover = st.popover("Hapus Barang Masuk")
         with hapus_barang_masuk_popover:
             data_transaksi_hapus = get_data_transaksi_hapus()
-            if data_transaksi_hapus is not None:
+            if data_transaksi_hapus:
                 pilihan_transaksi = {transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
                 id_transaksi_hapus = st.selectbox("Pilih Barang Masuk yang akan dihapus", list(pilihan_transaksi.keys()))
                 if st.button("Hapus"):
@@ -163,4 +191,3 @@ def tampilkan_barang_masuk():
 
 if __name__ == "__main__":
     tampilkan_barang_masuk()
-

@@ -7,6 +7,7 @@ from kondisi import tampilkan_semua_kondisi
 from ruangan import tampilkan_semua_ruangan
 from barang import tampilkan_data_barang
 from barang_masuk import tampilkan_barang_masuk
+from barang_keluar import tampilkan_barang_keluar
 
 
 def ambil_kredensial(username):
@@ -129,7 +130,7 @@ def main():
                 if st.session_state.transaksi_selected == "Barang masuk":
                     tampilkan_barang_masuk()
                 elif st.session_state.transaksi_selected == "Barang keluar":
-                    st.write("Anda memilih menu Barang keluar")
+                    tampilkan_barang_keluar()
                 elif st.session_state.transaksi_selected == "Barang dipinjam":
                     st.write("Anda memilih menu Barang dipinjam")
 

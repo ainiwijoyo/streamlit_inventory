@@ -69,6 +69,7 @@ def main():
 
         # Menu di sidebar
         with st.sidebar:
+            st.title(" SISTEM INFORMASI INVENTARIS BARANG TIK FKES UNJAYA")
             selected = option_menu("PILIH MENU", ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Settings', 'Logout'],
                                    icons=['house', 'tools', 'bag-check', 'card-checklist',
                                           'clipboard2-fill', 'gear', 'door-closed'],

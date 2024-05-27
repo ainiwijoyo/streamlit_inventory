@@ -81,6 +81,13 @@ def show_message(message_type, message_content):
 
 
 def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
+    if not nama_barang or not keterangan_barang:
+        st.error("Semua form wajib diisi!")
+        # Tunda pesan error selama 2 detik
+        time.sleep(2)
+        st.empty()  # Hilangkan pesan error
+        return
+
     db = koneksi_db()
     cursor = db.cursor()
 
@@ -115,6 +122,7 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_
 
     cursor.close()
     db.close()
+
 
 # Fungsi untuk mengubah data barang
 
@@ -157,6 +165,7 @@ def delete_data(id_barang):
     show_message("success", "Data barang berhasil dihapus!")
 
 # aplikasi utama
+
 
 def tampilkan_data_barang():
 

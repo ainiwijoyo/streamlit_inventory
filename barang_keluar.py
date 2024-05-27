@@ -103,7 +103,7 @@ def get_data_transaksi():
     JOIN tb_barang b ON t.id_barang = b.id_barang
     JOIN tb_merek m ON b.id_merek = m.id_merek
     JOIN tb_kategori k ON b.id_kategori = k.id_kategori
-    JOIN tb_ruangan r ON b.id_ruangan = r.id_ruangan
+    JOIN tb_ruangan r ON t.id_ruangan = r.id_ruangan
     JOIN tb_kondisi c ON b.id_kondisi = c.id_kondisi
     WHERE t.jenis_transaksi = 'keluar'
     """
@@ -120,15 +120,16 @@ def get_data_transaksi():
 
 def get_data_transaksi_hapus():
     query = """
-    SELECT t.id_transaksi, t.tanggal, b.nama_barang
+    SELECT t.id_transaksi, b.nama_barang, r.nama_ruangan
     FROM tb_transaksi t
     JOIN tb_barang b ON t.id_barang = b.id_barang
+    JOIN tb_ruangan r ON t.id_ruangan = r.id_ruangan
     WHERE t.jenis_transaksi = 'keluar'
     """
     cursor.execute(query)
     result = cursor.fetchall()
-    data_transaksi_hapus = [{"id_transaksi": row[0], "tanggal": row[1],
-                             "nama_barang": f"{row[2]} - {row[1].strftime('%Y-%m-%d')}"} for row in result]
+    data_transaksi_hapus = [
+        {"id_transaksi": row[0], "deskripsi": f"{row[1]} - {row[2]}"} for row in result]
     return data_transaksi_hapus
 
 # Fungsi untuk menghapus barang keluar berdasarkan id_transaksi
@@ -250,11 +251,12 @@ def tampilkan_barang_keluar():
             data_transaksi_hapus = get_data_transaksi_hapus()
             if data_transaksi_hapus:
                 pilihan_transaksi = {
-                    transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
-                id_transaksi_hapus = st.selectbox(
+                    transaksi['deskripsi']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
+                deskripsi_transaksi_hapus = st.selectbox(
                     "Pilih Barang keluar yang akan dihapus", list(pilihan_transaksi.keys()))
                 if st.button("Hapus"):
-                    hapus_barang_keluar(pilihan_transaksi[id_transaksi_hapus])
+                    hapus_barang_keluar(
+                        pilihan_transaksi[deskripsi_transaksi_hapus])
                     st.success("Barang keluar berhasil dihapus!")
                     st.experimental_rerun()
             else:

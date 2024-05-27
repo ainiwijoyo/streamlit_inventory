@@ -11,54 +11,75 @@ db = koneksi_db()
 cursor = db.cursor()
 
 # Fungsi untuk mendapatkan data dari tabel tb_barang
+
+
 def get_data_barang():
-    cursor.execute("SELECT id_barang, nama_barang, id_ruangan, id_merek, id_kategori, id_kondisi, jumlah_sekarang FROM tb_barang")
+    cursor.execute(
+        "SELECT id_barang, nama_barang, id_ruangan, id_merek, id_kategori, id_kondisi, jumlah_sekarang FROM tb_barang")
     return cursor.fetchall()
 
 # Fungsi untuk mendapatkan data dari tabel tb_ruangan
+
+
 def get_nama_ruangan(id_ruangan):
-    cursor.execute("SELECT nama_ruangan FROM tb_ruangan WHERE id_ruangan = %s", (id_ruangan,))
+    cursor.execute(
+        "SELECT nama_ruangan FROM tb_ruangan WHERE id_ruangan = %s", (id_ruangan,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_merek
+
+
 def get_nama_merek(id_merek):
-    cursor.execute("SELECT nama_merek FROM tb_merek WHERE id_merek = %s", (id_merek,))
+    cursor.execute(
+        "SELECT nama_merek FROM tb_merek WHERE id_merek = %s", (id_merek,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kategori
+
+
 def get_nama_kategori(id_kategori):
-    cursor.execute("SELECT nama_kategori FROM tb_kategori WHERE id_kategori = %s", (id_kategori,))
+    cursor.execute(
+        "SELECT nama_kategori FROM tb_kategori WHERE id_kategori = %s", (id_kategori,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kondisi
+
+
 def get_nama_kondisi(id_kondisi):
-    cursor.execute("SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
+    cursor.execute(
+        "SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 # Fungsi untuk menambah data barang masuk
+
+
 def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan):
     # Ambil id_ruangan dari tb_barang berdasarkan id_barang yang dipilih
-    cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
+    cursor.execute(
+        "SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
     result = cursor.fetchone()
     id_ruangan = result[0] if result else None
 
     if id_ruangan:
         # Masukkan data ke dalam tb_transaksi dengan id_ruangan
         cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s)",
-                    (id_barang, jumlah, tanggal, keterangan, id_ruangan))
+                       (id_barang, jumlah, tanggal, keterangan, id_ruangan))
         db.commit()
 
         # Perbarui jumlah barang di tb_barang
-        cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
+        cursor.execute(
+            "UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
         db.commit()
     else:
         st.error("Gagal menambahkan barang masuk: Ruangan tidak ditemukan.")
 
 # Fungsi untuk mendapatkan data transaksi
+
+
 def get_data_transaksi():
     query = """
     SELECT t.tanggal, b.nama_barang, m.nama_merek, k.nama_kategori, r.nama_ruangan, c.nama_kondisi, t.jumlah, t.keterangan_transaksi
@@ -74,10 +95,13 @@ def get_data_transaksi():
     result = cursor.fetchall()
     if not result:
         return None
-    columns = ['Tanggal', 'Nama Barang', 'Merek', 'Kategori', 'Ruangan', 'Kondisi', 'Jumlah', 'Keterangan']
+    columns = ['Tanggal', 'Nama Barang', 'Merek', 'Kategori',
+               'Ruangan', 'Kondisi', 'Jumlah', 'Keterangan']
     return pd.DataFrame(result, columns=columns)
 
 # Fungsi untuk mendapatkan data transaksi untuk hapus barang masuk
+
+
 def get_data_transaksi_hapus():
     query = """
     SELECT t.id_transaksi, t.tanggal, b.nama_barang
@@ -87,27 +111,36 @@ def get_data_transaksi_hapus():
     """
     cursor.execute(query)
     result = cursor.fetchall()
-    data_transaksi_hapus = [{"id_transaksi": row[0], "tanggal": row[1], "nama_barang": f"{row[2]} - {row[1].strftime('%Y-%m-%d')}" } for row in result]
+    data_transaksi_hapus = [{"id_transaksi": row[0], "tanggal": row[1],
+                             "nama_barang": f"{row[2]} - {row[1].strftime('%Y-%m-%d')}"} for row in result]
     return data_transaksi_hapus
 
 # Fungsi untuk menghapus barang masuk berdasarkan id_transaksi
+
+
 def hapus_barang_masuk(id_transaksi):
-    cursor.execute("SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+    cursor.execute(
+        "SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
     result = cursor.fetchone()
     id_barang = result[0]
     jumlah = result[1]
-    cursor.execute("DELETE FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+    cursor.execute(
+        "DELETE FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
     db.commit()
-    cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
+    cursor.execute(
+        "UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
     db.commit()
 
 # Fungsi untuk membersihkan data transaksi yang tidak valid
+
+
 def bersihkan_data_transaksi():
     cursor.execute("""
         DELETE FROM tb_transaksi
         WHERE id_barang NOT IN (SELECT id_barang FROM tb_barang)
     """)
     db.commit()
+
 
 def tampilkan_barang_masuk():
     st.title("BARANG MASUK")
@@ -125,10 +158,12 @@ def tampilkan_barang_masuk():
                 tanggal = st.date_input("Tanggal", datetime.now())
                 data_barang = get_data_barang()
                 if data_barang:
-                    pilihan_barang = {f"{barang[1]} - {get_nama_ruangan(barang[2])}": barang[0] for barang in data_barang}
-                    barang_terpilih = st.selectbox("Barang", list(pilihan_barang.keys()))
+                    pilihan_barang = {
+                        f"{barang[1]} - {get_nama_ruangan(barang[2])}": barang[0] for barang in data_barang}
+                    barang_terpilih = st.selectbox(
+                        "Barang", list(pilihan_barang.keys()))
                     id_barang = pilihan_barang.get(barang_terpilih)
-                    
+
                     if id_barang:
                         # Mengambil informasi terkait barang yang dipilih
                         selected_barang = None
@@ -147,8 +182,10 @@ def tampilkan_barang_masuk():
                             kondisi = get_nama_kondisi(selected_barang[5])
                             st.text_input("Kondisi", kondisi, disabled=True)
                             jumlah_saat_ini = selected_barang[6]
-                            st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
-                            jumlah = st.number_input("Jumlah", min_value=1, step=1)
+                            st.number_input("Jumlah Saat Ini",
+                                            jumlah_saat_ini, disabled=True)
+                            jumlah = st.number_input(
+                                "Jumlah", min_value=1, step=1)
                             keterangan = st.text_area("Keterangan")
                             submit = st.form_submit_button("Tambah")
 
@@ -156,14 +193,17 @@ def tampilkan_barang_masuk():
                             if keterangan.strip() == "":
                                 st.error("Form keterangan tidak boleh kosong!")
                             else:
-                                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan)
-                                st.success("Barang masuk berhasil ditambahkan!")
+                                tambah_barang_masuk(
+                                    tanggal, id_barang, jumlah, keterangan)
+                                st.success(
+                                    "Barang masuk berhasil ditambahkan!")
                                 time.sleep(2)  # Menunggu 2 detik
                                 st.experimental_rerun()
                     else:
                         st.warning("Tidak ada barang yang tersedia.")
                 else:
-                    st.warning("Tidak ada data barang yang tersedia.")
+                    st.warning("Tidak ada barang yang tersedia.")
+                    st.form_submit_button("Tambah", disabled=True)
 
     # Tampilkan DataFrame dari transaksi barang masuk
     df_transaksi = get_data_transaksi()
@@ -178,8 +218,10 @@ def tampilkan_barang_masuk():
         with hapus_barang_masuk_popover:
             data_transaksi_hapus = get_data_transaksi_hapus()
             if data_transaksi_hapus:
-                pilihan_transaksi = {transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
-                id_transaksi_hapus = st.selectbox("Pilih Barang Masuk yang akan dihapus", list(pilihan_transaksi.keys()))
+                pilihan_transaksi = {
+                    transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
+                id_transaksi_hapus = st.selectbox(
+                    "Pilih Barang Masuk yang akan dihapus", list(pilihan_transaksi.keys()))
                 if st.button("Hapus"):
                     hapus_barang_masuk(pilihan_transaksi[id_transaksi_hapus])
                     st.success("Barang masuk berhasil dihapus!")
@@ -188,6 +230,7 @@ def tampilkan_barang_masuk():
                 st.write("Tidak ada data barang masuk dalam database.")
     else:
         st.write("Tidak ditemukan data barang masuk di database.")
+
 
 if __name__ == "__main__":
     tampilkan_barang_masuk()

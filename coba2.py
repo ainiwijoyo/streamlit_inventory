@@ -1,73 +1,220 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.express as px
+from datetime import datetime
+import time
+from koneksi import koneksi_db  # Mengimpor fungsi koneksi_db dari koneksi.py
 
-@st.cache_data
-def load_data():
-     url = "https://raw.githubusercontent.com/Lexie88rus/bank-marketing-analysis/master/bank.csv"
-     return pd.read_csv(url)
+# Membuat koneksi database
+db = koneksi_db()
 
-df = load_data()
+# Membuat kursor untuk eksekusi query
+cursor = db.cursor()
 
-st.set_page_config(
-     page_title="Modern Dashboard",
-     page_icon="📊",
-     layout="wide",
-     initial_sidebar_state="expanded",
- )
+# Fungsi untuk mendapatkan data dari tabel tb_barang
+def get_data_barang():
+    cursor.execute("SELECT id_barang, nama_barang, id_ruangan, id_merek, id_kategori, id_kondisi, jumlah_sekarang FROM tb_barang")
+    return cursor.fetchall()
 
-st.sidebar.header("Filter Options")
+# Fungsi untuk mendapatkan data dari tabel tb_ruangan
+def get_data_ruangan():
+    cursor.execute("SELECT id_ruangan, nama_ruangan FROM tb_ruangan")
+    return cursor.fetchall()
 
-job_filter = st.sidebar.multiselect(
-     "Select Job Type:",
-     options=df["job"].unique(),
-     default=df["job"].unique()
- )
+# Fungsi untuk mendapatkan data dari tabel tb_ruangan berdasarkan id_ruangan
+def get_nama_ruangan(id_ruangan):
+    cursor.execute("SELECT nama_ruangan FROM tb_ruangan WHERE id_ruangan = %s", (id_ruangan,))
+    result = cursor.fetchone()
+    return result[0] if result else None
 
-age_filter = st.sidebar.slider(
-     "Select Age Range:",
-     min_value=int(df["age"].min()),
-     max_value=int(df["age"].max()),
-     value=(int(df["age"].min()), int(df["age"].max()))
- )
+# Fungsi untuk mendapatkan data dari tabel tb_merek
+def get_nama_merek(id_merek):
+    cursor.execute("SELECT nama_merek FROM tb_merek WHERE id_merek = %s", (id_merek,))
+    result = cursor.fetchone()
+    return result[0] if result else None
 
-df_filtered = df[
-     (df["job"].isin(job_filter)) &
-     (df["age"] >= age_filter[0]) &
-     (df["age"] <= age_filter[1])
- ]
+# Fungsi untuk mendapatkan data dari tabel tb_kategori
+def get_nama_kategori(id_kategori):
+    cursor.execute("SELECT nama_kategori FROM tb_kategori WHERE id_kategori = %s", (id_kategori,))
+    result = cursor.fetchone()
+    return result[0] if result else None
 
-st.title("Modern Interactive Dashboard")
+# Fungsi untuk mendapatkan data dari tabel tb_kondisi
+def get_nama_kondisi(id_kondisi):
+    cursor.execute("SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
+    result = cursor.fetchone()
+    return result[0] if result else None
 
- # Displaying Key Metrics
-total_customers = len(df_filtered)
+# Fungsi untuk menambah data barang keluar
+def tambah_barang_keluar(tanggal, id_barang, jumlah, keterangan, id_ruangan_terpilih):
+    if id_ruangan_terpilih:
+        # Ambil jumlah sekarang dari tb_barang
+        cursor.execute("SELECT jumlah_sekarang FROM tb_barang WHERE id_barang = %s", (id_barang,))
+        result = cursor.fetchone()
+        jumlah_sekarang = result[0] if result else None
+        
+        if jumlah_sekarang is not None:
+            # Periksa apakah jumlah yang dimasukkan tidak melebihi jumlah yang tersedia
+            if jumlah_sekarang >= jumlah:
+                # keluarkan data ke dalam tb_transaksi dengan id_ruangan
+                cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan) VALUES (%s, 'keluar', 'selesai', %s, %s, %s, %s)",
+                            (id_barang, jumlah, tanggal, keterangan, id_ruangan_terpilih))
+                db.commit()
 
-avg_balance = round(df_filtered['balance'].mean(), 2)
+                # Perbarui jumlah barang di tb_barang
+                cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
+                db.commit()
+                st.success("Barang keluar berhasil ditambahkan!")
+            else:
+                st.error("Jumlah barang yang dimasukkan melebihi jumlah yang tersedia saat ini!")
+        else:
+            st.error("Gagal menambahkan barang keluar: Barang tidak ditemukan.")
+    else:
+        st.error("Gagal menambahkan barang keluar: Ruangan tidak ditemukan.")
 
-col1, col2 = st.columns(2)
+# Fungsi untuk mendapatkan data transaksi
+def get_data_transaksi():
+    query = """
+    SELECT t.tanggal, b.nama_barang, m.nama_merek, k.nama_kategori, r.nama_ruangan, c.nama_kondisi, t.jumlah, t.keterangan_transaksi
+    FROM tb_transaksi t
+    JOIN tb_barang b ON t.id_barang = b.id_barang
+    JOIN tb_merek m ON b.id_merek = m.id_merek
+    JOIN tb_kategori k ON b.id_kategori = k.id_kategori
+    JOIN tb_ruangan r ON b.id_ruangan = r.id_ruangan
+    JOIN tb_kondisi c ON b.id_kondisi = c.id_kondisi
+    WHERE t.jenis_transaksi = 'keluar'
+    """
+    cursor.execute(query)
+    result = cursor.fetchall()
+    if not result:
+        return None
+    columns = ['Tanggal', 'Nama Barang', 'Merek', 'Kategori', 'Ruangan', 'Kondisi', 'Jumlah', 'Keterangan']
+    return pd.DataFrame(result, columns=columns)
 
-with col1:
-     st.metric(label="Total Customers", value=total_customers)
+# Fungsi untuk mendapatkan data transaksi untuk hapus barang keluar
+def get_data_transaksi_hapus():
+    query = """
+    SELECT t.id_transaksi, t.tanggal, b.nama_barang
+    FROM tb_transaksi t
+    JOIN tb_barang b ON t.id_barang = b.id_barang
+    WHERE t.jenis_transaksi = 'keluar'
+    """
+    cursor.execute(query)
+    result = cursor.fetchall()
+    data_transaksi_hapus = [{"id_transaksi": row[0], "tanggal": row[1],
+                             "nama_barang": f"{row[2]} - {row[1].strftime('%Y-%m-%d')}"} for row in result]
+    return data_transaksi_hapus
 
-with col2:
-     st.metric(label="Average Balance", value=f"${avg_balance}")
+# Fungsi untuk menghapus barang keluar berdasarkan id_transaksi
+def hapus_barang_keluar(id_transaksi):
+    cursor.execute(
+        "SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+    result = cursor.fetchone()
+    id_barang = result[0]
+    jumlah = result[1]
+    cursor.execute(
+        "DELETE FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+    db.commit()
+    cursor.execute(
+        "UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
+    db.commit()
 
-  # Plotting Charts
-fig_age_dist = px.histogram(
-                df_filtered, x='age', nbins=30, title='Age Distribution')
-fig_job_dist = px.pie(df_filtered, names='job', title='Job Distribution')
+# Fungsi untuk membersihkan data transaksi yang tidak valid
+def bersihkan_data_transaksi():
+    cursor.execute("""
+        DELETE FROM tb_transaksi
+        WHERE id_barang NOT IN (SELECT id_barang FROM tb_barang)
+    """)
+    db.commit()
 
-  # Displaying Charts in Columns
-col3, col4 = st.columns(2)
-  
-with col3:
-      st.plotly_chart(fig_age_dist)
-      
-with col4:
-      st.plotly_chart(fig_job_dist)
+def tampilkan_barang_keluar():
+    st.title("BARANG keluar")
 
-  # Additional Analysis Section
-if st.checkbox("Show Raw Data"):
-      st.subheader("Raw Data")
-      st.write(df_filtered)
+    # Bersihkan data transaksi yang tidak valid sebelum menampilkan data
+    bersihkan_data_transaksi()
+
+    # Tambah Barang keluar
+    tambah_barang_keluar_popover = st.popover("Tambah Barang keluar")
+    with tambah_barang_keluar_popover:
+        if st.button("Muat Ulang Form"):
+            st.experimental_rerun()
+        else:
+            with st.form("form_tambah_barang"):
+                tanggal = st.date_input("Tanggal", datetime.now())
+                data_barang = get_data_barang()
+                data_ruangan = get_data_ruangan()  # Ambil data ruangan
+                if data_barang:
+                    pilihan_barang = {f"{barang[1]} - {get_nama_ruangan(barang[2])}": barang[0] for barang in data_barang}
+                    barang_terpilih = st.selectbox("Barang", list(pilihan_barang.keys()))
+                    id_barang = pilihan_barang.get(barang_terpilih)
+                    
+                    if id_barang:
+                        # Mengambil informasi terkait barang yang dipilih
+                        selected_barang = None
+                        for barang in data_barang:
+                            if barang[0] == id_barang:
+                                selected_barang = barang
+                                break
+
+                        if selected_barang:
+                            # Perbarui pilihan ruangan berdasarkan data ruangan yang tersedia
+                            pilihan_ruangan = {f"{ruangan[1]}": ruangan[0] for ruangan in data_ruangan}
+                            ruangan_terpilih = st.selectbox("Ruangan", list(pilihan_ruangan.keys()))
+                            id_ruangan_terpilih = pilihan_ruangan.get(ruangan_terpilih)
+
+                            if id_ruangan_terpilih:
+                                ruangan = get_nama_ruangan(selected_barang[2])
+                                st.text_input("Ruangan", ruangan, disabled=True)
+                                merek = get_nama_merek(selected_barang[3])
+                                st.text_input("Merek", merek, disabled=True)
+                                kategori = get_nama_kategori(selected_barang[4])
+                                st.text_input("Kategori", kategori, disabled=True)
+                                kondisi = get_nama_kondisi(selected_barang[5])
+                                st.text_input("Kondisi", kondisi, disabled=True)
+                                jumlah_saat_ini = selected_barang[6]
+                                st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
+                                jumlah = st.number_input("Jumlah", min_value=1, step=1)
+                                keterangan = st.text_area("Keterangan")
+                                submit = st.form_submit_button("Tambah")
+
+                                if submit:
+                                    if keterangan.strip() == "":
+                                        st.error("Form keterangan tidak boleh kosong!")
+                                    else:
+                                        tambah_barang_keluar(tanggal, id_barang, jumlah, keterangan, id_ruangan_terpilih)
+                                        time.sleep(2)  # Menunggu 2 detik
+                                        st.experimental_rerun()
+                            else:
+                                st.error("Ruangan tidak valid!")
+                        else:
+                            st.error("Barang tidak valid!")
+                else:
+                    st.warning("Tidak ada barang yang tersedia.")
+                    st.form_submit_button("Tambah", disabled=True)
+
+    # Tampilkan DataFrame dari transaksi barang keluar
+    df_transaksi = get_data_transaksi()
+    if df_transaksi is not None and not df_transaksi.empty:
+        st.write("Data Transaksi Barang keluar")
+        # Mengatur ulang indeks DataFrame
+        df_transaksi.index += 1
+        st.dataframe(df_transaksi)
+
+        # Hapus Barang keluar
+        hapus_barang_keluar_popover = st.popover("Hapus Barang keluar")
+        with hapus_barang_keluar_popover:
+            data_transaksi_hapus = get_data_transaksi_hapus()
+            if data_transaksi_hapus:
+                pilihan_transaksi = {transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
+                id_transaksi_hapus = st.selectbox("Pilih Barang keluar yang akan dihapus", list(pilihan_transaksi.keys()))
+                if st.button("Hapus"):
+                    hapus_barang_keluar(pilihan_transaksi[id_transaksi_hapus])
+                    st.success("Barang keluar berhasil dihapus!")
+                    st.experimental_rerun()
+            else:
+                st.write("Tidak ada data barang keluar dalam database.")
+    else:
+        st.write("Tidak ditemukan data barang keluar di database.")
+
+if __name__ == "__main__":
+    tampilkan_barang_keluar()
+

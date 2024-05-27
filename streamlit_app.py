@@ -41,6 +41,7 @@ def main():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
 
+    # Menangani login
     if not st.session_state.logged_in:
         st.write(
             "## SELAMAT DATANG!! di sistem informasi inventaris TIK fakultas kesehatan")
@@ -50,13 +51,13 @@ def main():
         if st.sidebar.button("Login"):
             if login(username, password):
                 st.session_state.logged_in = True
-                st.experimental_rerun()
+                st.experimental_rerun()  # Refresh halaman untuk memperbarui status login
             else:
                 st.sidebar.error(
                     "Login gagal. Periksa kembali username dan password.")
 
     # Halaman setelah login
-    else:
+    if st.session_state.logged_in:
         st.header("Selamat datang!")
 
         # Tambahkan metrik yang ingin ditampilkan setelah login berhasil
@@ -150,7 +151,7 @@ def main():
 
         elif selected == "Logout":
             st.session_state.logged_in = False
-            st.experimental_rerun()
+            st.experimental_rerun()  # Refresh halaman untuk memperbarui status login
 
 
 if __name__ == "__main__":

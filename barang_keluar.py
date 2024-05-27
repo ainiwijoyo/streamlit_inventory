@@ -35,18 +35,11 @@ def get_nama_kondisi(id_kondisi):
     cursor.execute("SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
     return cursor.fetchone()[0]
 
-# Fungsi untuk menambah data barang masuk
-def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan):
-    # Ambil id_ruangan dari tb_barang berdasarkan id_barang yang dipilih
-    cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
-    id_ruangan = cursor.fetchone()[0]
-
-    # Masukkan data ke dalam tb_transaksi dengan id_ruangan
-    cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s)",
-                   (id_barang, jumlah, tanggal, keterangan, id_ruangan))
+# Fungsi untuk menambah data barang keluar
+def tambah_barang_keluar(tanggal, id_barang, jumlah, keterangan):
+    cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi) VALUES (%s, 'keluar', 'selesai', %s, %s, %s)",
+                   (id_barang, jumlah, tanggal, keterangan))
     db.commit()
-
-    # Perbarui jumlah barang di tb_barang
     cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
     db.commit()
 
@@ -60,7 +53,7 @@ def get_data_transaksi():
     JOIN tb_kategori k ON b.id_kategori = k.id_kategori
     JOIN tb_ruangan r ON b.id_ruangan = r.id_ruangan
     JOIN tb_kondisi c ON b.id_kondisi = c.id_kondisi
-    WHERE t.jenis_transaksi = 'masuk'
+    WHERE t.jenis_transaksi = 'keluar'  -- Menambahkan klausa WHERE di sini
     """
     cursor.execute(query)
     result = cursor.fetchall()
@@ -69,21 +62,21 @@ def get_data_transaksi():
     columns = ['Tanggal', 'Nama Barang', 'Merek', 'Kategori', 'Ruangan', 'Kondisi', 'Jumlah', 'Keterangan']
     return pd.DataFrame(result, columns=columns)
 
-# Fungsi untuk mendapatkan data transaksi untuk hapus barang masuk
+# Fungsi untuk mendapatkan data transaksi untuk hapus barang keluar
 def get_data_transaksi_hapus():
     query = """
     SELECT t.id_transaksi, t.tanggal, b.nama_barang
     FROM tb_transaksi t
     JOIN tb_barang b ON t.id_barang = b.id_barang
-    WHERE t.jenis_transaksi = 'masuk'
+    WHERE t.jenis_transaksi = 'keluar'
     """
     cursor.execute(query)
     result = cursor.fetchall()
     data_transaksi_hapus = [{"id_transaksi": row[0], "tanggal": row[1], "nama_barang": f"{row[2]} - {row[1].strftime('%Y-%m-%d')}" } for row in result]
     return data_transaksi_hapus
 
-# Fungsi untuk menghapus barang masuk berdasarkan id_transaksi
-def hapus_barang_masuk(id_transaksi):
+# Fungsi untuk menghapus barang keluar berdasarkan id_transaksi
+def hapus_barang_keluar(id_transaksi):
     cursor.execute("SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
     result = cursor.fetchone()
     id_barang = result[0]
@@ -93,12 +86,12 @@ def hapus_barang_masuk(id_transaksi):
     cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
     db.commit()
 
-def tampilkan_barang_masuk():
-    st.title("BARANG MASUK")
+def tampilkan_barang_keluar():
+    st.title("BARANG keluar")
 
-    # Tambah Barang Masuk
-    tambah_barang_masuk_popover = st.popover("Tambah Barang Masuk")
-    with tambah_barang_masuk_popover:
+    # Tambah Barang keluar
+    tambah_barang_keluar = st.popover("Tambah Barang keluar")
+    with tambah_barang_keluar:
         with st.form("form_tambah_barang"):
             tanggal = st.date_input("Tanggal", datetime.now())
             data_barang = get_data_barang()
@@ -131,36 +124,33 @@ def tampilkan_barang_masuk():
             if keterangan.strip() == "":
                 st.error("Form keterangan tidak boleh kosong!")
             else:
-                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan)
-                pesan_berhasil = st.success("Barang masuk berhasil ditambahkan!")
+                tambah_barang_keluar(tanggal, id_barang, jumlah, keterangan)
+                pesan_berhasil = st.success("Barang keluar berhasil ditambahkan!")
                 time.sleep(2)  # Menunggu 2 detik
                 pesan_berhasil.empty()  # Menghapus pesan berhasil setelah 2 detik
                 st.experimental_rerun()
 
-    # Tampilkan DataFrame dari transaksi barang masuk
+    # Tampilkan DataFrame dari transaksi barang keluar
     df_transaksi = get_data_transaksi()
-    if df_transaksi is not None and not df_transaksi.empty:
-        st.write("Data Transaksi Barang Masuk")
+    if df_transaksi is not None:
+        st.write("Data Transaksi Barang keluar")
         # Mengatur ulang indeks DataFrame
         df_transaksi.index += 1
         st.dataframe(df_transaksi)
 
-        # Hapus Barang Masuk
-        hapus_barang_masuk_popover = st.popover("Hapus Barang Masuk")
-        with hapus_barang_masuk_popover:
+        # Hapus Barang keluar
+        hapus_barang_keluar = st.popover("Hapus Barang keluar")
+        with hapus_barang_keluar:
             data_transaksi_hapus = get_data_transaksi_hapus()
             if data_transaksi_hapus is not None:
                 pilihan_transaksi = {transaksi['nama_barang']: transaksi['id_transaksi'] for transaksi in data_transaksi_hapus}
-                id_transaksi_hapus = st.selectbox("Pilih Barang Masuk yang akan dihapus", list(pilihan_transaksi.keys()))
+                id_transaksi_hapus = st.selectbox("Pilih Barang keluar yang akan dihapus", list(pilihan_transaksi.keys()))
                 if st.button("Hapus"):
-                    hapus_barang_masuk(pilihan_transaksi[id_transaksi_hapus])
-                    st.success("Barang masuk berhasil dihapus!")
+                    hapus_barang_keluar(pilihan_transaksi[id_transaksi_hapus])
+                    st.success("Barang keluar berhasil dihapus!")
                     st.experimental_rerun()
             else:
-                st.write("Tidak ada data barang masuk dalam database.")
-    else:
-        st.write("Tidak ditemukan data barang masuk di database.")
+                st.write("Tidak ada data barang keluar dalam database.")
 
-if __name__ == "__main__":
-    tampilkan_barang_masuk()
+
 

@@ -13,22 +13,21 @@ from laporan.laporan_masuk import laporan_masuk
 from laporan.laporan_keluar import laporan_keluar
 from laporan.laporan_pinjam import laporan_pinjam
 from laporan.laporan_barang import laporan_stok_barang
-
+from akun.user import pengaturan_akun
 
 def ambil_kredensial(username):
     """
-    Fungsi untuk mengambil kredensial dari database PostgreSQL berdasarkan username
+    Fungsi untuk mengambil kredensial dari database mysql berdasarkan username
     """
     db = koneksi_db()
     cursor = db.cursor()
 
-    query = "SELECT username, password FROM user WHERE username = %s"
+    query = "SELECT id_user, username, password, jenis FROM user WHERE username = %s"
     cursor.execute(query, (username,))
     result = cursor.fetchone()  # Mengambil satu baris hasil query
 
     db.close()
     return result
-
 
 def login(username, password):
     """
@@ -36,10 +35,11 @@ def login(username, password):
     """
     kredensial = ambil_kredensial(username)
     if kredensial is not None:
-        if kredensial[1] == password:
+        if kredensial[2] == password:
+            st.session_state.id_user = kredensial[0]
+            st.session_state.jenis_akun = kredensial[3]
             return True
     return False
-
 
 def main():
     # Halaman login
@@ -75,9 +75,18 @@ def main():
         # Menu di sidebar
         with st.sidebar:
             st.title(" SISTEM INFORMASI INVENTARIS BARANG TIK FKES UNJAYA")
-            selected = option_menu("PILIH MENU", ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Settings', 'Logout'],
-                                   icons=['house', 'tools', 'bag-check', 'card-checklist',
-                                          'clipboard2-fill', 'gear', 'door-closed'],
+            
+            # Daftar menu untuk sidebar
+            menu_items = ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Logout']
+            menu_icons = ['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill', 'door-closed']
+
+            # Menambahkan Settings untuk superadmin
+            if st.session_state.jenis_akun == "superadmin":
+                menu_items.insert(-1, "Settings")
+                menu_icons.insert(-1, 'gear')
+
+            selected = option_menu("PILIH MENU", menu_items,
+                                   icons=menu_icons,
                                    menu_icon="cast",
                                    default_index=0)
 
@@ -153,7 +162,7 @@ def main():
                     laporan_pinjam()
 
         elif selected == "Settings":
-            st.write("Anda memilih menu Settings")
+            pengaturan_akun()
 
         elif selected == "Logout":
             st.session_state.logged_in = False

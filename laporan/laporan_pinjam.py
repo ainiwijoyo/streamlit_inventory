@@ -35,7 +35,7 @@ def ambil_data(tgl_dari, tgl_sampai):
     JOIN tb_barang ON tb_transaksi.id_barang = tb_barang.id_barang
     JOIN tb_merek ON tb_barang.id_merek = tb_merek.id_merek
     JOIN tb_kondisi ON tb_barang.id_kondisi = tb_kondisi.id_kondisi
-    WHERE tb_transaksi.jenis_transaksi = 'keluar' AND tb_transaksi.tanggal BETWEEN %s AND %s
+    WHERE tb_transaksi.jenis_transaksi = 'pinjam' AND tb_transaksi.tanggal BETWEEN %s AND %s
     ORDER BY tb_transaksi.tanggal DESC
     """
     cursor.execute(query, (tgl_dari, tgl_sampai))
@@ -47,7 +47,7 @@ def ambil_data(tgl_dari, tgl_sampai):
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 13)
-        self.cell(0, 2, 'LAPORAN BARANG keluar BAGIAN TIK', 0, 1, 'C')
+        self.cell(0, 2, 'LAPORAN PEMINJAMAN BAGIAN TIK', 0, 1, 'C')
         self.cell(0, 7, 'FAKULTAS KESEHATAN UNJAYA', 0, 1, 'C')
 
     def footer(self):
@@ -86,36 +86,36 @@ class PDF(FPDF):
             total_barang += row[4]
 
         self.set_font('Arial', 'B', 10)
-        self.cell(160, 10, 'TOTAL SEMUA BARANG keluar', 1, 0, 'C')
+        self.cell(160, 10, 'TOTAL SEMUA PEMINJAMAN', 1, 0, 'C')
         self.cell(30, 10, str(total_barang), 1, 1, 'C')
 
 
-def laporan_keluar():
-    st.title('CETAK LAPORAN TRANSAKSI KELUAR')
+#def laporan_pinjam():
+st.title('CETAK LAPORAN TRANSAKSI PEMINJAMAN')
 
-    col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1, 1])
 
-    with col1:
-        tgl_dari = st.date_input('Pilih tanggal dari')
+with col1:
+    tgl_dari = st.date_input('Pilih tanggal dari')
 
-    with col2:
-        tgl_sampai = st.date_input('Pilih tanggal sampai')
+with col2:
+    tgl_sampai = st.date_input('Pilih tanggal sampai')
 
-    if st.button('Cetak PDF'):
-        data = ambil_data(tgl_dari, tgl_sampai)
-        if data:
-            pdf = PDF()
-            pdf.laporan(data, tgl_dari, tgl_sampai)
+if st.button('Cetak PDF'):
+    data = ambil_data(tgl_dari, tgl_sampai)
+    if data:
+        pdf = PDF()
+        pdf.laporan(data, tgl_dari, tgl_sampai)
 
-            # Simpan output PDF ke dalam variabel
-            pdf_bytes = pdf.output(dest='S').encode('latin1')
+        # Simpan output PDF ke dalam variabel
+        pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-            # Simpan PDF ke memori menggunakan io.BytesIO
-            pdf_buffer = io.BytesIO(pdf_bytes)
+        # Simpan PDF ke memori menggunakan io.BytesIO
+        pdf_buffer = io.BytesIO(pdf_bytes)
 
-            # Generate URL untuk download
-            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-            href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="Laporan_Barang_keluar_{tgl_dari.strftime("%Y-%m-%d")}_{tgl_sampai.strftime("%Y-%m-%d")}.pdf">Unduh Laporan</a>'
-            st.markdown(href, unsafe_allow_html=True)
-        else:
-            st.warning('Tidak ada data transaksi keluar pada periode ini.')
+        # Generate URL untuk download
+        b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="Laporan_Barang_pinjam_{tgl_dari.strftime("%Y-%m-%d")}_{tgl_sampai.strftime("%Y-%m-%d")}.pdf">Unduh Laporan</a>'
+        st.markdown(href, unsafe_allow_html=True)
+    else:
+        st.warning('Tidak ada data transaksi pinjam pada periode ini.')

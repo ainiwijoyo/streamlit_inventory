@@ -1,16 +1,16 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from koneksi import koneksi_db
-from kategori import tampilkan_semua_kategori
-from merek import tampilkan_semua_merek
-from kondisi import tampilkan_semua_kondisi
-from ruangan import tampilkan_semua_ruangan
+from master.kategori import tampilkan_semua_kategori
+from master.merek import tampilkan_semua_merek
+from master.kondisi import tampilkan_semua_kondisi
+from master.ruangan import tampilkan_semua_ruangan
 from barang import tampilkan_data_barang
-from barang_masuk import tampilkan_barang_masuk
-from barang_keluar import tampilkan_barang_keluar
-from pinjam import tampilkan_barang_pinjam
-from laporan_masuk import laporan_masuk
-from laporan_keluar import laporan_keluar
+from transaksi.barang_masuk import tampilkan_barang_masuk
+from transaksi.barang_keluar import tampilkan_barang_keluar
+from transaksi.pinjam import tampilkan_barang_pinjam
+from laporan.laporan_masuk import laporan_masuk
+from laporan.laporan_keluar import laporan_keluar
 
 
 def ambil_kredensial(username):

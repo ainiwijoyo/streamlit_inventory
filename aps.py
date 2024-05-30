@@ -1,5 +1,4 @@
 import streamlit as st
-import mysql.connector
 from streamlit_option_menu import option_menu
 from koneksi import koneksi_db
 from master.kategori import tampilkan_semua_kategori
@@ -16,71 +15,31 @@ from laporan.laporan_pinjam import laporan_pinjam
 from laporan.laporan_barang import laporan_stok_barang
 from akun.user import pengaturan_akun
 
-# Tambahkan link untuk mengimpor Font Awesome
-st.markdown("""
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-""", unsafe_allow_html=True)
-
-
-def ambil_jumlah_barang():
+def ambil_kredensial(username):
     """
-    Fungsi untuk mengambil jumlah data barang dari tabel tb_barang
+    Fungsi untuk mengambil kredensial dari database mysql berdasarkan username
     """
     db = koneksi_db()
     cursor = db.cursor()
 
-    query = "SELECT SUM(jumlah_sekarang) FROM tb_barang"
-    cursor.execute(query)
-    result = cursor.fetchone()[0]  # Mengambil jumlah total
+    query = "SELECT id_user, username, password, jenis FROM user WHERE username = %s"
+    cursor.execute(query, (username,))
+    result = cursor.fetchone()  # Mengambil satu baris hasil query
 
     db.close()
-    return int(result) if result is not None else 0
+    return result
 
-
-def ambil_jumlah_barang_masuk():
+def login(username, password):
     """
-    Fungsi untuk mengambil jumlah barang masuk dari tabel tb_transaksi
+    Fungsi untuk melakukan otentikasi pengguna
     """
-    db = koneksi_db()
-    cursor = db.cursor()
-
-    query = "SELECT SUM(jumlah) FROM tb_transaksi WHERE jenis_transaksi = 'masuk'"
-    cursor.execute(query)
-    result = cursor.fetchone()[0]  # Mengambil jumlah total
-
-    db.close()
-    return int(result) if result is not None else 0
-
-
-def ambil_jumlah_barang_keluar():
-    """
-    Fungsi untuk mengambil jumlah barang keluar dari tabel tb_transaksi
-    """
-    db = koneksi_db()
-    cursor = db.cursor()
-
-    query = "SELECT SUM(jumlah) FROM tb_transaksi WHERE jenis_transaksi = 'keluar'"
-    cursor.execute(query)
-    result = cursor.fetchone()[0]  # Mengambil jumlah total
-
-    db.close()
-    return int(result) if result is not None else 0
-
-
-def ambil_jumlah_peminjaman():
-    """
-    Fungsi untuk mengambil jumlah peminjaman dari tabel tb_transaksi
-    """
-    db = koneksi_db()
-    cursor = db.cursor()
-
-    query = "SELECT SUM(jumlah) FROM tb_transaksi WHERE jenis_transaksi = 'pinjam'"
-    cursor.execute(query)
-    result = cursor.fetchone()[0]  # Mengambil jumlah total
-
-    db.close()
-    return int(result) if result is not None else 0
-
+    kredensial = ambil_kredensial(username)
+    if kredensial is not None:
+        if kredensial[2] == password:
+            st.session_state.id_user = kredensial[0]
+            st.session_state.jenis_akun = kredensial[3]
+            return True
+    return False
 
 def main():
     # Halaman login
@@ -108,37 +67,18 @@ def main():
 
         # Tambahkan metrik yang ingin ditampilkan setelah login berhasil
         col1, col2, col3, col4 = st.columns(4)
-
-        col1.markdown(
-            f"<h2 style='color:black; font-size: 22px; font-weight: bold;'>"
-            f" STOK BARANG </h2><h3><i class='fas fa-box' style='font-size:24px;color:black;'></i>  {ambil_jumlah_barang()}</h3>",
-            unsafe_allow_html=True
-        )
-        col2.markdown(
-            f"<h2 style='color:#096352; font-size: 22px; font-weight: bold;'>"
-            f"BARANG MASUK</h2><h3><i class='fas fa-arrow-down' style='font-size:24px;color:#096352;'></i>  {ambil_jumlah_barang_masuk()}</h3>",
-            unsafe_allow_html=True
-        )
-        col3.markdown(
-            f"<h2 style='color:red; font-size: 22px; font-weight: bold;'>"
-            f"BARANG KELUAR</h2><h3> <i class='fas fa-arrow-up' style='font-size:24px;color:red;'></i>  {ambil_jumlah_barang_keluar()}</h3>",
-            unsafe_allow_html=True
-        )
-        col4.markdown(
-            f"<h2 style='color:#E8B536; font-size: 22px; font-weight: bold;'>"
-            f"PEMINJAMAN</h2><h3><i class='fas fa-hand-holding' style='font-size:24px;color:#E8B536;'></i>  {ambil_jumlah_peminjaman()}</h3>",
-            unsafe_allow_html=True
-        )
+        col1.metric("Data Barang", "70", "BARANG")
+        col2.metric("Barang Masuk", "9", "BARANG MASUK")
+        col3.metric("Barang Keluar", "86", "BARANG KELUAR")
+        col4.metric("Peminjaman", "96", "DIPINJAM")
 
         # Menu di sidebar
         with st.sidebar:
             st.title(" SISTEM INFORMASI INVENTARIS BARANG TIK FKES UNJAYA")
-
+            
             # Daftar menu untuk sidebar
-            menu_items = ["Home", "Master", 'Stok Barang',
-                          'Transaksi', 'Laporan', 'Logout']
-            menu_icons = ['house', 'tools', 'bag-check',
-                          'card-checklist', 'clipboard2-fill', 'door-closed']
+            menu_items = ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Logout']
+            menu_icons = ['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill', 'door-closed']
 
             # Menambahkan Settings untuk superadmin
             if st.session_state.jenis_akun == "superadmin":
@@ -227,34 +167,6 @@ def main():
         elif selected == "Logout":
             st.session_state.logged_in = False
             st.experimental_rerun()  # Refresh halaman untuk memperbarui status login
-
-
-def ambil_kredensial(username):
-    """
-    Fungsi untuk mengambil kredensial dari database mysql berdasarkan username
-    """
-    db = koneksi_db()
-    cursor = db.cursor()
-
-    query = "SELECT id_user, username, password, jenis FROM user WHERE username = %s"
-    cursor.execute(query, (username,))
-    result = cursor.fetchone()  # Mengambil satu baris hasil query
-
-    db.close()
-    return result
-
-
-def login(username, password):
-    """
-    Fungsi untuk melakukan otentikasi pengguna
-    """
-    kredensial = ambil_kredensial(username)
-    if kredensial is not None:
-        if kredensial[2] == password:
-            st.session_state.id_user = kredensial[0]
-            st.session_state.jenis_akun = kredensial[3]
-            return True
-    return False
 
 
 if __name__ == "__main__":

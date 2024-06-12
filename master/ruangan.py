@@ -109,35 +109,34 @@ def delete_ruangan(id_ruangan):
 
     return f"ruangan Nomor {id_ruangan} berhasil dihapus!"
 
-# Fungsi untuk membuat PDF dari data ruangan
-
-
+# Fungsi untuk membuat PDF dari data merek
 def buat_pdf(ruangan):
     """
-    Fungsi untuk membuat PDF dari data ruangan
+    Fungsi untuk membuat PDF dari data kategori dengan orientasi landscape
     """
-    pdf = FPDF()
+    pdf = FPDF(orientation='L')  # Ubah orientasi menjadi landscape
     pdf.add_page()
+
     pdf.set_font("Arial", size=12)
 
     # Tambahkan judul
-    pdf.cell(200, 10, txt="Daftar ruangan", ln=True, align='C')
+    pdf.cell(280, 10, txt="DAFTAR RUANGAN", ln=True, align='C')  # Sesuaikan lebar judul
 
-    # Tambahkan header tabel
-    pdf.cell(40, 10, txt="ID", border=1)
-    pdf.cell(80, 10, txt="Nama ruangan", border=1)
-    pdf.cell(70, 10, txt="Keterangan", border=1)
+    # Tambahkan header tabel dengan align center
+    pdf.cell(20, 10, txt="ID", border=1, align='C')  # Sesuaikan lebar kolom ID
+    pdf.cell(80, 10, txt="Nama Ruangan", border=1, align='C')  # Sesuaikan lebar kolom Nama Kategori
+    pdf.cell(180, 10, txt="Keterangan", border=1, align='C')  # Sesuaikan lebar kolom Keterangan
     pdf.ln()
 
-    # Tambahkan data ruangan ke tabel
+    # Tambahkan data kategori ke tabel
     for kat in ruangan:
-        pdf.cell(40, 10, txt=str(kat[0]), border=1)
-        pdf.cell(80, 10, txt=kat[1], border=1)
-        pdf.cell(70, 10, txt=kat[2], border=1)
+        pdf.cell(20, 10, txt=str(kat[0]), border=1, align='C')  # Sesuaikan lebar kolom ID
+        pdf.cell(80, 10, txt=kat[1], border=1)  # Sesuaikan lebar kolom Nama Kategori
+        pdf.cell(180, 10, txt=kat[2], border=1)  # Sesuaikan lebar kolom Keterangan
         pdf.ln()
 
     # Simpan PDF ke file
-    pdf_file = "ruangan.pdf"
+    pdf_file = "Ruangan.pdf"
     pdf.output(pdf_file)
 
     return pdf_file

@@ -110,34 +110,33 @@ def delete_merek(id_merek):
     return f"merek Nomor {id_merek} berhasil dihapus!"
 
 # Fungsi untuk membuat PDF dari data merek
-
-
 def buat_pdf(merek):
     """
-    Fungsi untuk membuat PDF dari data merek
+    Fungsi untuk membuat PDF dari data kategori dengan orientasi landscape
     """
-    pdf = FPDF()
+    pdf = FPDF(orientation='L')  # Ubah orientasi menjadi landscape
     pdf.add_page()
+
     pdf.set_font("Arial", size=12)
 
     # Tambahkan judul
-    pdf.cell(200, 10, txt="Daftar merek", ln=True, align='C')
+    pdf.cell(280, 10, txt="DAFTAR MEREK", ln=True, align='C')  # Sesuaikan lebar judul
 
-    # Tambahkan header tabel
-    pdf.cell(40, 10, txt="ID", border=1)
-    pdf.cell(80, 10, txt="Nama merek", border=1)
-    pdf.cell(70, 10, txt="Keterangan", border=1)
+    # Tambahkan header tabel dengan align center
+    pdf.cell(20, 10, txt="ID", border=1, align='C')  # Sesuaikan lebar kolom ID
+    pdf.cell(80, 10, txt="Nama Merek", border=1, align='C')  # Sesuaikan lebar kolom Nama Kategori
+    pdf.cell(180, 10, txt="Keterangan", border=1, align='C')  # Sesuaikan lebar kolom Keterangan
     pdf.ln()
 
-    # Tambahkan data merek ke tabel
+    # Tambahkan data kategori ke tabel
     for kat in merek:
-        pdf.cell(40, 10, txt=str(kat[0]), border=1)
-        pdf.cell(80, 10, txt=kat[1], border=1)
-        pdf.cell(70, 10, txt=kat[2], border=1)
+        pdf.cell(20, 10, txt=str(kat[0]), border=1, align='C')  # Sesuaikan lebar kolom ID
+        pdf.cell(80, 10, txt=kat[1], border=1)  # Sesuaikan lebar kolom Nama Kategori
+        pdf.cell(180, 10, txt=kat[2], border=1)  # Sesuaikan lebar kolom Keterangan
         pdf.ln()
 
     # Simpan PDF ke file
-    pdf_file = "merek.pdf"
+    pdf_file = "Merek.pdf"
     pdf.output(pdf_file)
 
     return pdf_file

@@ -1,5 +1,5 @@
 import streamlit as st
-import mysql.connector
+import time
 from streamlit_option_menu import option_menu
 from koneksi import koneksi_db
 from master.kategori import tampilkan_semua_kategori
@@ -80,6 +80,20 @@ def ambil_jumlah_peminjaman():
 
     db.close()
     return int(result) if result is not None else 0
+
+def ambil_nama_user(id_user):
+    """
+    Fungsi untuk mengambil nama user dari tabel user berdasarkan id_user
+    """
+    db = koneksi_db()
+    cursor = db.cursor()
+
+    query = "SELECT nama FROM user WHERE id_user = %s"
+    cursor.execute(query, (id_user,))
+    result = cursor.fetchone()  # Mengambil nama user
+
+    db.close()
+    return result[0] if result is not None else "Admin"
 
 
 def main():
@@ -185,7 +199,20 @@ def main():
 
         # Logika untuk menampilkan konten berdasarkan pilihan menu di laman utama
         if selected == "Home":
-            st.write("Anda memilih menu Home")
+            # Menampilkan teks berjalan dengan nama pengguna yang telah diambil dari database
+            def teks_berjalan(teks):
+                st.markdown(f'<marquee behavior="scroll" direction="left" style="font-family: Arial; font-size: 30px; color: #096352; font-weight: bold;" width="100%">{teks}</marquee>', unsafe_allow_html=True)
+
+            # Mendapatkan nama pengguna yang login
+            id_user = st.session_state.id_user
+            nama_pengguna = ambil_nama_user(id_user)
+
+            # Pesan yang akan ditampilkan dengan nama pengguna
+            pesan = f"HALO {nama_pengguna.upper()}!! SELAMAT DATANG DI SISTEM INFORMASI INVENTARIS BARANG TIK FAKULTAS KESEHATAN UNJAYA"
+
+            # Menampilkan teks berjalan
+            teks_berjalan(pesan)
+            time.sleep(0.1)  # Delay untuk kecepatan berjalan
 
         elif selected == "Master":
             if 'master_selected' in st.session_state:

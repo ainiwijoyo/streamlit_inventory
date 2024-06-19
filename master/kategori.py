@@ -172,7 +172,7 @@ def tampilkan_semua_kategori():
             placeholder.empty()
 
         # Bagian untuk menambah kategori baru
-        with st.expander("Tambah Kategori Baru", expanded=False):
+        with st.popover("Tambah Kategori Baru"):
             nama_kategori = st.text_input("Nama Kategori")
             keterangan = st.text_area("Keterangan")
 
@@ -185,7 +185,7 @@ def tampilkan_semua_kategori():
                     tampilkan_pesan(pesan, "⚠️", "warning")
 
         # Bagian untuk memperbarui kategori
-        with st.expander("Perbarui Kategori", expanded=False):
+        with st.popover("Perbarui Kategori"):
             kategori = read_kategori()
             if kategori:
                 # Buat dictionary untuk mapping nama_kategori ke id_kategori
@@ -217,7 +217,7 @@ def tampilkan_semua_kategori():
                     st.experimental_rerun()
 
         # Bagian untuk menghapus kategori
-        with st.expander("Hapus Kategori", expanded=False):
+        with st.popover("Hapus Kategori"):
             kategori = read_kategori()
             if kategori:
                 # Buat dictionary untuk mapping nama_kategori ke id_kategori

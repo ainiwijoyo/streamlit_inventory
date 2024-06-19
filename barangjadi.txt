@@ -38,20 +38,6 @@ def get_data():
     db.close()
     return df
 
-# Fungsi untuk mendapatkan nama kondisi dari id_kondisi
-def get_kondisi_name(id_kondisi):
-    db = koneksi_db()
-    cursor = db.cursor()
-
-    query = "SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s"
-    cursor.execute(query, (id_kondisi,))
-    kondisi_name = cursor.fetchone()[0]
-
-    cursor.close()
-    db.close()
-
-    return kondisi_name
-
 # Fungsi untuk mengambil data referensi untuk dropdown
 
 
@@ -387,33 +373,30 @@ def tampilkan_data_barang():
                     st.experimental_rerun()
 
         # Popover untuk Edit Unit Barang
-        if not df.empty:
-            with st.popover("Edit Unit"):
-                pilihan_edit_dict = {
-                    f"{row['NAMA BARANG']} - {row['MEREK']} - {row['KATEGORI']}": row['ID Barang'] for idx, row in df.iterrows()}
-                pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit Unit", list(pilihan_edit_dict.keys()), key="barang_unit_edit")
-                id_barang = pilihan_edit_dict[pilihan_edit_str]
+    if not df.empty:
+        with st.popover("Edit Unit"):
+            pilihan_edit_dict = {
+                f"{row['NAMA BARANG']} - {row['MEREK']} - {row['KATEGORI']}": row['ID Barang'] for idx, row in df.iterrows()}
+            pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit Unit", list(pilihan_edit_dict.keys()), key="barang_unit_edit")
+            id_barang = pilihan_edit_dict[pilihan_edit_str]
 
-                # Mengambil data unit barang berdasarkan id_barang
-                unit_data = get_unit_data(id_barang)
-                unit_options = [f"{unit[0]} (Kondisi: {get_kondisi_name(unit[1])})" for unit in unit_data]
-                selected_unit = st.selectbox("Pilih Nomor Seri Unit", unit_options, key="unit_edit")
+            # Mengambil data unit barang berdasarkan id_barang
+            unit_data = get_unit_data(id_barang)
+            unit_options = [f"{unit[0]} (Kondisi: {unit[1]})" for unit in unit_data]
+            selected_unit = st.selectbox("Pilih Nomor Seri Unit", unit_options, key="unit_edit")
+            nomor_seri = selected_unit.split()[0]
 
-                # Ambil nomor seri dari pilihan unit
-                nomor_seri = selected_unit.split()[0]
+            id_kondisi_baru = st.selectbox("Kondisi Baru", [kondisi[1] for kondisi in kondisi_data], key="kondisi_baru")
 
-                # Pilihan untuk kondisi baru
-                id_kondisi_baru = st.selectbox("Kondisi Baru", [kondisi[1] for kondisi in kondisi_data], key="kondisi_baru")
-
-                if st.button("Simpan Perubahan Unit", key="simpan_perubahan_unit_button"):
-                    id_kondisi_baru = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi_baru)
-                    update_unit_condition(nomor_seri, id_kondisi_baru)
-                    st.experimental_rerun()
+            if st.button("Simpan Perubahan Unit", key="simpan_perubahan_unit_button"):
+                id_kondisi_baru = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi_baru)
+                update_unit_condition(nomor_seri, id_kondisi_baru)
+                st.experimental_rerun()
 
 
         # Expander untuk Hapus Barang
         if not df.empty:
-            with st.popover("Hapus Barang"):
+            with st.expander("Hapus Barang"):
                 pilihan_hapus_dict = {
                     f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
                 pilihan_hapus_str = st.selectbox("Pilih Barang untuk Dihapus", list(

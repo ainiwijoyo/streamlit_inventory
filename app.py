@@ -81,6 +81,7 @@ def ambil_jumlah_peminjaman():
     db.close()
     return int(result) if result is not None else 0
 
+
 def ambil_nama_user(id_user):
     """
     Fungsi untuk mengambil nama user dari tabel user berdasarkan id_user
@@ -103,8 +104,7 @@ def main():
 
     # Menangani login
     if not st.session_state.logged_in:
-        st.write(
-            "## SELAMAT DATANG!! di sistem informasi inventaris TIK fakultas kesehatan")
+        st.write("## SELAMAT DATANG!! di sistem informasi inventaris TIK fakultas kesehatan")
         st.sidebar.header("Silakan Login")
         username = st.sidebar.text_input("Username")
         password = st.sidebar.text_input("Password", type="password")
@@ -113,8 +113,7 @@ def main():
                 st.session_state.logged_in = True
                 st.experimental_rerun()  # Refresh halaman untuk memperbarui status login
             else:
-                st.sidebar.error(
-                    "Login gagal. Periksa kembali username dan password.")
+                st.sidebar.error("Login gagal. Periksa kembali username dan password.")
 
     # Halaman setelah login
     if st.session_state.logged_in:
@@ -149,15 +148,17 @@ def main():
             st.title(" SISTEM INFORMASI INVENTARIS BARANG TIK FKES UNJAYA")
 
             # Daftar menu untuk sidebar
-            menu_items = ["Home", "Master", 'Stok Barang',
-                          'Transaksi', 'Laporan', 'Logout']
-            menu_icons = ['house', 'tools', 'bag-check',
-                          'card-checklist', 'clipboard2-fill', 'door-closed']
+            if st.session_state.jenis_akun == "dekan":
+                menu_items = ['Laporan', 'Logout']
+                menu_icons = ['clipboard2-fill', 'door-closed']
+            else:
+                menu_items = ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan', 'Logout']
+                menu_icons = ['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill', 'door-closed']
 
-            # Menambahkan Settings untuk superadmin
-            if st.session_state.jenis_akun == "superadmin":
-                menu_items.insert(-1, "Settings")
-                menu_icons.insert(-1, 'gear')
+                # Menambahkan Settings untuk superadmin
+                if st.session_state.jenis_akun == "superadmin":
+                    menu_items.insert(-1, "Settings")
+                    menu_icons.insert(-1, 'gear')
 
             selected = option_menu("PILIH MENU", menu_items,
                                    icons=menu_icons,
@@ -167,8 +168,7 @@ def main():
             if selected == "Master":
                 st.write("### Master Menu")
                 master_selected = option_menu(None, ["Kategori", "Merk", "Kondisi", "Ruangan"],
-                                              icons=[
-                                                  'tags', 'tag', 'check2-circle', 'columns-gap'],
+                                              icons=['tags', 'tag', 'check2-circle', 'columns-gap'],
                                               menu_icon="cast",
                                               default_index=0,
                                               orientation="horizontal")
@@ -178,8 +178,7 @@ def main():
             elif selected == "Transaksi":
                 st.write("### Transaksi Menu")
                 transaksi_selected = option_menu(None, ["Barang masuk", "Barang terpakai", "Barang dipinjam"],
-                                                 icons=[
-                                                     'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'],
+                                                 icons=['box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'],
                                                  menu_icon="cast",
                                                  default_index=0,
                                                  orientation="horizontal")
@@ -189,8 +188,7 @@ def main():
             elif selected == "Laporan":
                 st.write("### Laporan Menu")
                 laporan_selected = option_menu(None, ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"],
-                                               icons=[
-                                                   'journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill'],
+                                               icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill'],
                                                menu_icon="cast",
                                                default_index=0,
                                                orientation="horizontal")
@@ -232,7 +230,7 @@ def main():
             if 'transaksi_selected' in st.session_state:
                 if st.session_state.transaksi_selected == "Barang masuk":
                     tampilkan_barang_masuk()
-                elif st.session_state.transaksi_selected == "Barang keluar":
+                elif st.session_state.transaksi_selected == "Barang terpakai":
                     tampilkan_barang_keluar()
                 elif st.session_state.transaksi_selected == "Barang dipinjam":
                     tampilkan_barang_pinjam()

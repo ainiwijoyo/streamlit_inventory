@@ -177,7 +177,7 @@ def main():
 
             elif selected == "Transaksi":
                 st.write("### Transaksi Menu")
-                transaksi_selected = option_menu(None, ["Barang masuk", "Barang keluar", "Barang dipinjam"],
+                transaksi_selected = option_menu(None, ["Barang masuk", "Barang terpakai", "Barang dipinjam"],
                                                  icons=[
                                                      'box-arrow-in-down', 'box-arrow-left', 'ticket-perforated'],
                                                  menu_icon="cast",

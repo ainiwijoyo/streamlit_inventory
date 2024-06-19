@@ -177,12 +177,15 @@ def laporan_stok_barang():
             # Simpan output PDF ke dalam variabel
             pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-            # Simpan PDF ke memori menggunakan io.BytesIO
-            pdf_buffer = io.BytesIO(pdf_bytes)
+            # Tampilkan PDF dalam iframe
+            pdf_display = f'<iframe src="data:application/pdf;base64,{base64.b64encode(pdf_bytes).decode()}" width="700" height="400" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
 
-            # Generate URL untuk download
-            b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-            href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="Laporan_Stok_Barang_{tgl_dari.strftime("%Y-%m-%d")}_{tgl_sampai.strftime("%Y-%m-%d")}.pdf">Unduh Laporan</a>'
+            # Tombol untuk mengunduh PDF
+            file_name = f"Laporan_Stok_Barang_{tgl_dari.strftime('%Y-%m-%d')}_{tgl_sampai.strftime('%Y-%m-%d')}.pdf"
+            href = f'<a href="data:application/pdf;base64,{base64.b64encode(pdf_bytes).decode()}" download="{file_name}" target="_blank">Unduh Laporan</a>'
             st.markdown(href, unsafe_allow_html=True)
         else:
             st.warning('Tidak ada data barang pada periode ini.')
+
+laporan_stok_barang()

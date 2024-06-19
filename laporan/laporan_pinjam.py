@@ -5,7 +5,6 @@ from datetime import datetime
 import io
 import base64
 
-
 def koneksi_db():
     """
     Fungsi untuk koneksi ke database MySQL
@@ -18,7 +17,6 @@ def koneksi_db():
     )
     return db
 
-
 # Membuat objek koneksi database
 db = koneksi_db()
 
@@ -26,8 +24,6 @@ db = koneksi_db()
 cursor = db.cursor()
 
 # Fungsi untuk mengambil data berdasarkan periode waktu
-
-
 def ambil_data(tgl_dari, tgl_sampai):
     query = """
     SELECT tb_transaksi.tanggal, tb_barang.nama_barang, tb_merek.nama_merek, tb_ruangan.nama_ruangan, 
@@ -44,8 +40,6 @@ def ambil_data(tgl_dari, tgl_sampai):
     return cursor.fetchall()
 
 # Fungsi untuk membuat laporan PDF
-
-
 class PDF(FPDF):
     def __init__(self, orientation='L', unit='mm', format='A4'):
         super().__init__(orientation, unit, format)
@@ -66,8 +60,7 @@ class PDF(FPDF):
 
         self.add_page()
         self.set_font('Arial', 'B', 10)
-        self.cell(
-            0, 10, f'PERIODE : {tgl_dari_str} - {tgl_sampai_str}', 0, 1, 'C')
+        self.cell(0, 10, f'PERIODE : {tgl_dari_str} - {tgl_sampai_str}', 0, 1, 'C')
         self.ln(10)
 
         self.set_font('Arial', 'B', 10)
@@ -129,9 +122,15 @@ def laporan_pinjam():
             # Simpan PDF ke memori menggunakan io.BytesIO
             pdf_buffer = io.BytesIO(pdf_bytes)
 
-            # Generate URL untuk download
+            # Generate URL untuk membuka PDF di tab baru
             b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-            href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="Laporan_Barang_pinjam_{tgl_dari.strftime("%Y-%m-%d")}_{tgl_sampai.strftime("%Y-%m-%d")}.pdf">Unduh Laporan</a>'
+            pdf_display = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="700" height="400" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
+            
+            file_name = f"LAPORAN_TRANSAKSI_PEMINJAMAN_{tgl_dari.strftime('%d-%m-%Y')}_{tgl_sampai.strftime('%d-%m-%Y')}.pdf"
+            href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{file_name}" target="_blank">Unduh Laporan</a>'
             st.markdown(href, unsafe_allow_html=True)
         else:
             st.warning('Tidak ada data transaksi pinjam pada periode ini.')
+
+laporan_pinjam()

@@ -5,35 +5,50 @@ from koneksi import koneksi_db
 import time
 
 # Fungsi untuk mengambil data dari tabel tb_barang
-
-
 def get_data():
     db = koneksi_db()
     cursor = db.cursor()
     query = """
-        SELECT tb_barang.id_barang, tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, tb_kondisi.nama_kondisi, 
-        tb_barang.jumlah_awal, 
-        (tb_barang.jumlah_awal + COALESCE(SUM(CASE 
-            WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah 
-            WHEN tb_transaksi.jenis_transaksi = 'keluar' OR (tb_transaksi.jenis_transaksi = 'pinjam' AND tb_transaksi.status = 'belum') THEN -tb_transaksi.jumlah 
-            ELSE 0 
-        END), 0)) AS jumlah_sekarang, 
-        tb_barang.tanggal_barang,
-        tb_barang.keterangan_barang
-        FROM tb_barang 
-        LEFT JOIN tb_merek ON tb_merek.id_merek = tb_barang.id_merek 
-        LEFT JOIN tb_kategori ON tb_kategori.id_kategori = tb_barang.id_kategori 
-        LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan 
-        LEFT JOIN tb_kondisi ON tb_kondisi.id_kondisi = tb_barang.id_kondisi 
-        LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang 
-        GROUP BY tb_barang.id_barang 
-        ORDER BY tb_barang.id_barang ASC
+        SELECT
+            tb_barang.id_barang,
+            tb_barang.nama_barang,
+            tb_merek.nama_merek,
+            tb_kategori.nama_kategori,
+            tb_ruangan.nama_ruangan,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 1 THEN 1 ELSE 0 END) AS baik,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 2 THEN 1 ELSE 0 END) AS rusak_ringan,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 3 THEN 1 ELSE 0 END) AS rusak_berat,
+            tb_barang.jumlah_awal,
+            (tb_barang.jumlah_awal + COALESCE(SUM(CASE
+                WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah
+                WHEN tb_transaksi.jenis_transaksi = 'keluar' OR (tb_transaksi.jenis_transaksi = 'pinjam' AND tb_transaksi.status = 'belum') THEN -tb_transaksi.jumlah
+                ELSE 0
+            END), 0)) AS jumlah_sekarang,
+            tb_barang.tanggal_barang,
+            tb_barang.keterangan_barang
+        FROM
+            tb_barang
+            LEFT JOIN tb_merek ON tb_merek.id_merek = tb_barang.id_merek
+            LEFT JOIN tb_kategori ON tb_kategori.id_kategori = tb_barang.id_kategori
+            LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan
+            LEFT JOIN tb_barang_unit ON tb_barang_unit.id_barang = tb_barang.id_barang
+            LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang
+        WHERE
+            tb_transaksi.jenis_transaksi IN ('masuk', 'keluar', 'pinjam')  -- Adjust this condition as per your transaction types
+        GROUP BY
+            tb_barang.id_barang
+        ORDER BY
+            tb_barang.id_barang ASC
+
     """
     cursor.execute(query)
     data = cursor.fetchall()
-    column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN",
-                    "KONDISI", "JML AWAL", "JML SKARANG", "TGL PENGADAAN", "KETERANGAN"]
+    column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN", "BAIK", "RUSAK RINGAN", "RUSAK BERAT", "JML AWAL", "JML SEKARANG", "TGL PENGADAAN", "KETERANGAN"]
     df = pd.DataFrame(data, columns=column_names)
+    
+    # Menyesuaikan indeks nomor dimulai dari 1
+    df.index = df.index + 1
+
     cursor.close()
     db.close()
     return df
@@ -108,12 +123,12 @@ def show_message(message_type, message_content):
 # Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 
 
-def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
+# Fungsi untuk menambah data barang dengan validasi data yang sudah ada
+def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang):
     if not nama_barang or not keterangan_barang:
         st.error("Semua form wajib diisi!")
-        # Tunda pesan error selama 2 detik
         time.sleep(2)
-        st.empty()  # Hilangkan pesan error
+        st.empty()
         return
 
     db = koneksi_db()
@@ -135,8 +150,21 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_
         cursor.execute(query)
         next_id = cursor.fetchone()[0]
 
-        # Hitung jumlah sekarang
-        jumlah_sekarang = jumlah_awal
+        # Default kondisi ID untuk kondisi "BAIK" (ID Kondisi = 1)
+        id_kondisi = 1
+
+        # Hitung jumlah sekarang berdasarkan data transaksi
+        query_jumlah_sekarang = """
+            SELECT COALESCE(SUM(CASE
+                WHEN jenis_transaksi = 'masuk' THEN jumlah
+                WHEN jenis_transaksi = 'keluar' OR (jenis_transaksi = 'pinjam' AND status = 'belum') THEN -jumlah
+                ELSE 0
+            END), 0) AS jumlah_sekarang
+            FROM tb_transaksi
+            WHERE id_barang = %s
+        """
+        cursor.execute(query_jumlah_sekarang, (next_id,))
+        jumlah_sekarang = jumlah_awal + cursor.fetchone()[0]
 
         # Insert ke tb_barang
         query_barang = """
@@ -159,6 +187,8 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_
 
     cursor.close()
     db.close()
+
+
 
 
 
@@ -303,8 +333,8 @@ def tampilkan_data_barang():
             id_kondisi = next(
                 kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
 
-            add_data(nama_barang, id_merek, id_kategori, id_ruangan,
-                     id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
+            add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang)
+
             st.experimental_rerun()
 
     # Mengambil data dari database
@@ -327,7 +357,10 @@ def tampilkan_data_barang():
             # Jika ada data setelah filter, tampilkan dalam bentuk tabel
             if not df.empty:
                 # Menghapus kolom "ID Barang"
-                df_display = df.drop(columns=["ID Barang"])
+                if "ID Barang" in df.columns:
+                    df_display = df.drop(columns=["ID Barang"])
+                else:
+                    df_display = df
                 # Mengatur indeks nomor dimulai dari 1
                 df_display.index = df_display.index + 1
                 # Menampilkan data dalam bentuk tabel
@@ -359,13 +392,11 @@ def tampilkan_data_barang():
                 nama_barang = st.text_input(
                     "Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
                 id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[
-                                        merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
+                    merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
                 id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[
                     kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
                 id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[
                     ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
-                id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[
-                    kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']), key="kondisi_edit")
                 jumlah_awal = st.number_input(
                     "Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
                 keterangan_barang = st.text_area(

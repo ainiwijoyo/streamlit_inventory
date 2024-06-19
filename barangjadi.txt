@@ -5,13 +5,15 @@ from koneksi import koneksi_db
 import time
 
 # Fungsi untuk mengambil data dari tabel tb_barang
-
-
+# Fungsi untuk mengambil data dari tabel tb_barang
 def get_data():
     db = koneksi_db()
     cursor = db.cursor()
     query = """
-        SELECT tb_barang.id_barang, tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, tb_kondisi.nama_kondisi, 
+        SELECT tb_barang.id_barang, tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, 
+        SUM(CASE WHEN tb_barang.id_kondisi = 1 THEN tb_barang.jumlah_awal ELSE 0 END) AS BAIK,
+        SUM(CASE WHEN tb_barang.id_kondisi = 2 THEN tb_barang.jumlah_awal ELSE 0 END) AS RUSAK_RINGAN,
+        SUM(CASE WHEN tb_barang.id_kondisi = 3 THEN tb_barang.jumlah_awal ELSE 0 END) AS RUSAK_BERAT,
         tb_barang.jumlah_awal, 
         (tb_barang.jumlah_awal + COALESCE(SUM(CASE 
             WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah 
@@ -24,7 +26,6 @@ def get_data():
         LEFT JOIN tb_merek ON tb_merek.id_merek = tb_barang.id_merek 
         LEFT JOIN tb_kategori ON tb_kategori.id_kategori = tb_barang.id_kategori 
         LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan 
-        LEFT JOIN tb_kondisi ON tb_kondisi.id_kondisi = tb_barang.id_kondisi 
         LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang 
         GROUP BY tb_barang.id_barang 
         ORDER BY tb_barang.id_barang ASC
@@ -32,11 +33,25 @@ def get_data():
     cursor.execute(query)
     data = cursor.fetchall()
     column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN",
-                    "KONDISI", "JML AWAL", "JML SKARANG", "TGL PENGADAAN", "KETERANGAN"]
+                    "BAIK", "RUSAK RINGAN", "RUSAK BERAT", "JML AWAL", "JML SEKARANG", "TGL PENGADAAN", "KETERANGAN"]
     df = pd.DataFrame(data, columns=column_names)
     cursor.close()
     db.close()
     return df
+
+# Fungsi untuk mendapatkan nama kondisi dari id_kondisi
+def get_kondisi_name(id_kondisi):
+    db = koneksi_db()
+    cursor = db.cursor()
+
+    query = "SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s"
+    cursor.execute(query, (id_kondisi,))
+    kondisi_name = cursor.fetchone()[0]
+
+    cursor.close()
+    db.close()
+
+    return kondisi_name
 
 # Fungsi untuk mengambil data referensi untuk dropdown
 
@@ -94,12 +109,11 @@ def show_message(message_type, message_content):
 # Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 
 
-def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang):
+def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang):
     if not nama_barang or not keterangan_barang:
         st.error("Semua form wajib diisi!")
-        # Tunda pesan error selama 2 detik
         time.sleep(2)
-        st.empty()  # Hilangkan pesan error
+        st.empty()
         return
 
     db = koneksi_db()
@@ -120,6 +134,9 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_
         query = "SELECT COALESCE(MAX(id_barang), 0) + 1 FROM tb_barang"
         cursor.execute(query)
         next_id = cursor.fetchone()[0]
+
+        # Default kondisi ID untuk kondisi "BAIK" (ID Kondisi = 1)
+        id_kondisi = 1
 
         # Hitung jumlah sekarang
         jumlah_sekarang = jumlah_awal
@@ -145,6 +162,7 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_
 
     cursor.close()
     db.close()
+
 
 
 
@@ -345,13 +363,11 @@ def tampilkan_data_barang():
                 nama_barang = st.text_input(
                     "Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
                 id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[
-                                        merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
+                    merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
                 id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[
                     kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
                 id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[
                     ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
-                id_kondisi = st.selectbox("Kondisi", [kondisi[1] for kondisi in kondisi_data], index=[
-                    kondisi[1] for kondisi in kondisi_data].index(selected_item['KONDISI']), key="kondisi_edit")
                 jumlah_awal = st.number_input(
                     "Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
                 keterangan_barang = st.text_area(
@@ -373,30 +389,33 @@ def tampilkan_data_barang():
                     st.experimental_rerun()
 
         # Popover untuk Edit Unit Barang
-    if not df.empty:
-        with st.popover("Edit Unit"):
-            pilihan_edit_dict = {
-                f"{row['NAMA BARANG']} - {row['MEREK']} - {row['KATEGORI']}": row['ID Barang'] for idx, row in df.iterrows()}
-            pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit Unit", list(pilihan_edit_dict.keys()), key="barang_unit_edit")
-            id_barang = pilihan_edit_dict[pilihan_edit_str]
+        if not df.empty:
+            with st.popover("Edit Unit"):
+                pilihan_edit_dict = {
+                    f"{row['NAMA BARANG']} - {row['MEREK']} - {row['KATEGORI']}": row['ID Barang'] for idx, row in df.iterrows()}
+                pilihan_edit_str = st.selectbox("Pilih Barang untuk Edit Unit", list(pilihan_edit_dict.keys()), key="barang_unit_edit")
+                id_barang = pilihan_edit_dict[pilihan_edit_str]
 
-            # Mengambil data unit barang berdasarkan id_barang
-            unit_data = get_unit_data(id_barang)
-            unit_options = [f"{unit[0]} (Kondisi: {unit[1]})" for unit in unit_data]
-            selected_unit = st.selectbox("Pilih Nomor Seri Unit", unit_options, key="unit_edit")
-            nomor_seri = selected_unit.split()[0]
+                # Mengambil data unit barang berdasarkan id_barang
+                unit_data = get_unit_data(id_barang)
+                unit_options = [f"{unit[0]} (Kondisi: {get_kondisi_name(unit[1])})" for unit in unit_data]
+                selected_unit = st.selectbox("Pilih Nomor Seri Unit", unit_options, key="unit_edit")
 
-            id_kondisi_baru = st.selectbox("Kondisi Baru", [kondisi[1] for kondisi in kondisi_data], key="kondisi_baru")
+                # Ambil nomor seri dari pilihan unit
+                nomor_seri = selected_unit.split()[0]
 
-            if st.button("Simpan Perubahan Unit", key="simpan_perubahan_unit_button"):
-                id_kondisi_baru = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi_baru)
-                update_unit_condition(nomor_seri, id_kondisi_baru)
-                st.experimental_rerun()
+                # Pilihan untuk kondisi baru
+                id_kondisi_baru = st.selectbox("Kondisi Baru", [kondisi[1] for kondisi in kondisi_data], key="kondisi_baru")
+
+                if st.button("Simpan Perubahan Unit", key="simpan_perubahan_unit_button"):
+                    id_kondisi_baru = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi_baru)
+                    update_unit_condition(nomor_seri, id_kondisi_baru)
+                    st.experimental_rerun()
 
 
         # Expander untuk Hapus Barang
         if not df.empty:
-            with st.expander("Hapus Barang"):
+            with st.popover("Hapus Barang"):
                 pilihan_hapus_dict = {
                     f"{row['NAMA BARANG']}": row['ID Barang'] for idx, row in df.iterrows()}
                 pilihan_hapus_str = st.selectbox("Pilih Barang untuk Dihapus", list(

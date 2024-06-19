@@ -1,2 +1,6 @@
 streamlit==1.35.0
+<<<<<<< HEAD
 streamlit-option-menu==0.3.2
+=======
+streamlit-option-menu==0.3.2
+>>>>>>> dba0587459d08c09a47becc5635e0ebd86634b00

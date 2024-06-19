@@ -33,13 +33,10 @@ def get_data():
             LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan
             LEFT JOIN tb_barang_unit ON tb_barang_unit.id_barang = tb_barang.id_barang
             LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang
-        WHERE
-            tb_transaksi.jenis_transaksi IN ('masuk', 'keluar', 'pinjam')  -- Adjust this condition as per your transaction types
         GROUP BY
             tb_barang.id_barang
         ORDER BY
             tb_barang.id_barang ASC
-
     """
     cursor.execute(query)
     data = cursor.fetchall()
@@ -123,7 +120,6 @@ def show_message(message_type, message_content):
 # Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 
 
-# Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang):
     if not nama_barang or not keterangan_barang:
         st.error("Semua form wajib diisi!")
@@ -153,18 +149,8 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
         # Default kondisi ID untuk kondisi "BAIK" (ID Kondisi = 1)
         id_kondisi = 1
 
-        # Hitung jumlah sekarang berdasarkan data transaksi
-        query_jumlah_sekarang = """
-            SELECT COALESCE(SUM(CASE
-                WHEN jenis_transaksi = 'masuk' THEN jumlah
-                WHEN jenis_transaksi = 'keluar' OR (jenis_transaksi = 'pinjam' AND status = 'belum') THEN -jumlah
-                ELSE 0
-            END), 0) AS jumlah_sekarang
-            FROM tb_transaksi
-            WHERE id_barang = %s
-        """
-        cursor.execute(query_jumlah_sekarang, (next_id,))
-        jumlah_sekarang = jumlah_awal + cursor.fetchone()[0]
+        # Hitung jumlah sekarang
+        jumlah_sekarang = jumlah_awal
 
         # Insert ke tb_barang
         query_barang = """
@@ -187,7 +173,6 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
 
     cursor.close()
     db.close()
-
 
 
 

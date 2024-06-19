@@ -5,36 +5,47 @@ from koneksi import koneksi_db
 import time
 
 # Fungsi untuk mengambil data dari tabel tb_barang
-# Fungsi untuk mengambil data dari tabel tb_barang
 def get_data():
     db = koneksi_db()
     cursor = db.cursor()
     query = """
-        SELECT tb_barang.id_barang, tb_barang.nama_barang, tb_merek.nama_merek, tb_kategori.nama_kategori, tb_ruangan.nama_ruangan, 
-        SUM(CASE WHEN tb_barang.id_kondisi = 1 THEN tb_barang.jumlah_awal ELSE 0 END) AS BAIK,
-        SUM(CASE WHEN tb_barang.id_kondisi = 2 THEN tb_barang.jumlah_awal ELSE 0 END) AS RUSAK_RINGAN,
-        SUM(CASE WHEN tb_barang.id_kondisi = 3 THEN tb_barang.jumlah_awal ELSE 0 END) AS RUSAK_BERAT,
-        tb_barang.jumlah_awal, 
-        (tb_barang.jumlah_awal + COALESCE(SUM(CASE 
-            WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah 
-            WHEN tb_transaksi.jenis_transaksi = 'keluar' OR (tb_transaksi.jenis_transaksi = 'pinjam' AND tb_transaksi.status = 'belum') THEN -tb_transaksi.jumlah 
-            ELSE 0 
-        END), 0)) AS jumlah_sekarang, 
-        tb_barang.tanggal_barang,
-        tb_barang.keterangan_barang
-        FROM tb_barang 
-        LEFT JOIN tb_merek ON tb_merek.id_merek = tb_barang.id_merek 
-        LEFT JOIN tb_kategori ON tb_kategori.id_kategori = tb_barang.id_kategori 
-        LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan 
-        LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang 
-        GROUP BY tb_barang.id_barang 
-        ORDER BY tb_barang.id_barang ASC
+        SELECT
+            tb_barang.id_barang,
+            tb_barang.nama_barang,
+            tb_merek.nama_merek,
+            tb_kategori.nama_kategori,
+            tb_ruangan.nama_ruangan,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 1 THEN 1 ELSE 0 END) AS baik,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 2 THEN 1 ELSE 0 END) AS rusak_ringan,
+            SUM(CASE WHEN tb_barang_unit.id_kondisi = 3 THEN 1 ELSE 0 END) AS rusak_berat,
+            tb_barang.jumlah_awal,
+            (tb_barang.jumlah_awal + COALESCE(SUM(CASE
+                WHEN tb_transaksi.jenis_transaksi = 'masuk' THEN tb_transaksi.jumlah
+                WHEN tb_transaksi.jenis_transaksi = 'keluar' OR (tb_transaksi.jenis_transaksi = 'pinjam' AND tb_transaksi.status = 'belum') THEN -tb_transaksi.jumlah
+                ELSE 0
+            END), 0)) AS jumlah_sekarang,
+            tb_barang.tanggal_barang,
+            tb_barang.keterangan_barang
+        FROM
+            tb_barang
+            LEFT JOIN tb_merek ON tb_merek.id_merek = tb_barang.id_merek
+            LEFT JOIN tb_kategori ON tb_kategori.id_kategori = tb_barang.id_kategori
+            LEFT JOIN tb_ruangan ON tb_ruangan.id_ruangan = tb_barang.id_ruangan
+            LEFT JOIN tb_barang_unit ON tb_barang_unit.id_barang = tb_barang.id_barang
+            LEFT JOIN tb_transaksi ON tb_transaksi.id_barang = tb_barang.id_barang
+        GROUP BY
+            tb_barang.id_barang
+        ORDER BY
+            tb_barang.id_barang ASC
     """
     cursor.execute(query)
     data = cursor.fetchall()
-    column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN",
-                    "BAIK", "RUSAK RINGAN", "RUSAK BERAT", "JML AWAL", "JML SEKARANG", "TGL PENGADAAN", "KETERANGAN"]
+    column_names = ["ID Barang", "NAMA BARANG", "MEREK", "KATEGORI", "RUANGAN", "BAIK", "RUSAK RINGAN", "RUSAK BERAT", "JML AWAL", "JML SEKARANG", "TGL PENGADAAN", "KETERANGAN"]
     df = pd.DataFrame(data, columns=column_names)
+    
+    # Menyesuaikan indeks nomor dimulai dari 1
+    df.index = df.index + 1
+
     cursor.close()
     db.close()
     return df
@@ -173,18 +184,56 @@ def update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_ko
     db = koneksi_db()
     cursor = db.cursor()
 
-    query = """
+    # Dapatkan jumlah_awal sebelumnya
+    query_jumlah_awal_lama = "SELECT jumlah_awal FROM tb_barang WHERE id_barang = %s"
+    cursor.execute(query_jumlah_awal_lama, (id_barang,))
+    jumlah_awal_lama = cursor.fetchone()[0]
+
+    # Update tb_barang
+    query_update_barang = """
         UPDATE tb_barang 
         SET nama_barang = %s, id_merek = %s, id_kategori = %s, id_ruangan = %s, id_kondisi = %s, jumlah_awal = %s, keterangan_barang = %s, tanggal_barang = %s
         WHERE id_barang = %s
     """
-    cursor.execute(query, (nama_barang, id_merek, id_kategori, id_ruangan,
-                   id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang, id_barang))
+    cursor.execute(query_update_barang, (nama_barang, id_merek, id_kategori, id_ruangan,
+                                        id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang, id_barang))
     db.commit()
     show_message("success", "Data barang berhasil diubah!")
 
+    # Perbarui tb_barang_unit jika ada perubahan pada jumlah_awal
+    if jumlah_awal != jumlah_awal_lama:
+        if jumlah_awal > jumlah_awal_lama:
+            # Tambahkan unit baru ke tb_barang_unit
+            query_tambah_unit = """
+                INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri)
+                VALUES (%s, %s, %s)
+            """
+            for i in range(jumlah_awal_lama + 1, jumlah_awal + 1):
+                nomor_seri_baru = f"{id_barang:04}-{i:02}"
+                cursor.execute(query_tambah_unit, (id_barang, id_kondisi, nomor_seri_baru))
+        elif jumlah_awal < jumlah_awal_lama:
+            # Hapus unit yang tidak lagi diperlukan dari tb_barang_unit
+            query_hapus_unit = """
+                DELETE FROM tb_barang_unit 
+                WHERE id_barang = %s 
+                AND nomor_seri IN (
+                    SELECT nomor_seri
+                    FROM (
+                        SELECT nomor_seri
+                        FROM tb_barang_unit
+                        WHERE id_barang = %s
+                        ORDER BY nomor_seri DESC
+                        LIMIT %s
+                    ) AS foo
+                )
+            """
+            cursor.execute(query_hapus_unit, (id_barang, id_barang, jumlah_awal_lama - jumlah_awal))
+
+        db.commit()
+
     cursor.close()
     db.close()
+
 
 # Fungsi untuk menghapus data barang
 
@@ -307,8 +356,8 @@ def tampilkan_data_barang():
             id_kondisi = next(
                 kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
 
-            add_data(nama_barang, id_merek, id_kategori, id_ruangan,
-                     id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
+            add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang)
+
             st.experimental_rerun()
 
     # Mengambil data dari database
@@ -331,7 +380,10 @@ def tampilkan_data_barang():
             # Jika ada data setelah filter, tampilkan dalam bentuk tabel
             if not df.empty:
                 # Menghapus kolom "ID Barang"
-                df_display = df.drop(columns=["ID Barang"])
+                if "ID Barang" in df.columns:
+                    df_display = df.drop(columns=["ID Barang"])
+                else:
+                    df_display = df
                 # Mengatur indeks nomor dimulai dari 1
                 df_display.index = df_display.index + 1
                 # Menampilkan data dalam bentuk tabel

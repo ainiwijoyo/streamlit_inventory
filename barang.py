@@ -5,6 +5,8 @@ from koneksi import koneksi_db
 import time
 
 # Fungsi untuk mengambil data dari tabel tb_barang
+# Fungsi untuk mengambil data dari tabel tb_barang
+# Fungsi untuk mengambil data dari tabel tb_barang
 def get_data():
     db = koneksi_db()
     cursor = db.cursor()
@@ -49,6 +51,8 @@ def get_data():
     cursor.close()
     db.close()
     return df
+
+
 
 # Fungsi untuk mendapatkan nama kondisi dari id_kondisi
 def get_kondisi_name(id_kondisi):
@@ -120,6 +124,7 @@ def show_message(message_type, message_content):
 # Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 
 
+# Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang):
     if not nama_barang or not keterangan_barang:
         st.error("Semua form wajib diisi!")
@@ -166,6 +171,15 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
         """
         for i in range(jumlah_awal):
             nomor_seri = f"{next_id:04}-{i+1:02}"  # Format nomor seri, misal: 1-0001, 1-0002, dll.
+
+            # Pastikan nomor seri unik sebelum dimasukkan ke database
+            while True:
+                cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE nomor_seri = %s", (nomor_seri,))
+                if cursor.fetchone()[0] == 0:
+                    break
+                i += 1
+                nomor_seri = f"{next_id:04}-{i+1:02}"
+
             cursor.execute(query_barang_unit, (next_id, id_kondisi, nomor_seri))
 
         db.commit()
@@ -177,6 +191,7 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
 
 
 
+
 # Fungsi untuk mengubah data barang
 
 
@@ -184,18 +199,56 @@ def update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_ko
     db = koneksi_db()
     cursor = db.cursor()
 
-    query = """
+    # Dapatkan jumlah_awal sebelumnya
+    query_jumlah_awal_lama = "SELECT jumlah_awal FROM tb_barang WHERE id_barang = %s"
+    cursor.execute(query_jumlah_awal_lama, (id_barang,))
+    jumlah_awal_lama = cursor.fetchone()[0]
+
+    # Update tb_barang
+    query_update_barang = """
         UPDATE tb_barang 
         SET nama_barang = %s, id_merek = %s, id_kategori = %s, id_ruangan = %s, id_kondisi = %s, jumlah_awal = %s, keterangan_barang = %s, tanggal_barang = %s
         WHERE id_barang = %s
     """
-    cursor.execute(query, (nama_barang, id_merek, id_kategori, id_ruangan,
-                   id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang, id_barang))
+    cursor.execute(query_update_barang, (nama_barang, id_merek, id_kategori, id_ruangan,
+                                        id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang, id_barang))
     db.commit()
     show_message("success", "Data barang berhasil diubah!")
 
+    # Perbarui tb_barang_unit jika ada perubahan pada jumlah_awal
+    if jumlah_awal != jumlah_awal_lama:
+        if jumlah_awal > jumlah_awal_lama:
+            # Tambahkan unit baru ke tb_barang_unit
+            query_tambah_unit = """
+                INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri)
+                VALUES (%s, %s, %s)
+            """
+            for i in range(jumlah_awal_lama + 1, jumlah_awal + 1):
+                nomor_seri_baru = f"{id_barang:04}-{i:02}"
+                cursor.execute(query_tambah_unit, (id_barang, id_kondisi, nomor_seri_baru))
+        elif jumlah_awal < jumlah_awal_lama:
+            # Hapus unit yang tidak lagi diperlukan dari tb_barang_unit
+            query_hapus_unit = """
+                DELETE FROM tb_barang_unit 
+                WHERE id_barang = %s 
+                AND nomor_seri IN (
+                    SELECT nomor_seri
+                    FROM (
+                        SELECT nomor_seri
+                        FROM tb_barang_unit
+                        WHERE id_barang = %s
+                        ORDER BY nomor_seri DESC
+                        LIMIT %s
+                    ) AS foo
+                )
+            """
+            cursor.execute(query_hapus_unit, (id_barang, id_barang, jumlah_awal_lama - jumlah_awal))
+
+        db.commit()
+
     cursor.close()
     db.close()
+
 
 # Fungsi untuk menghapus data barang
 

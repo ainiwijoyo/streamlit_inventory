@@ -171,7 +171,7 @@ def tampilkan_semua_ruangan():
             placeholder.empty()
 
         # Bagian untuk menambah ruangan baru
-        with st.expander("Tambah ruangan Baru", expanded=False):
+        with st.popover("Tambah ruangan Baru", expanded=False):
             nama_ruangan = st.text_input("Nama ruangan")
             keterangan = st.text_area("Keterangan")
 
@@ -184,7 +184,7 @@ def tampilkan_semua_ruangan():
                     tampilkan_pesan(pesan, "⚠️", "warning")
 
         # Bagian untuk memperbarui ruangan
-        with st.expander("Perbarui ruangan", expanded=False):
+        with st.popover("Perbarui ruangan", expanded=False):
             ruangan = read_ruangan()
             if ruangan:
                 # Buat dictionary untuk mapping nama_ruangan ke id_ruangan
@@ -216,7 +216,7 @@ def tampilkan_semua_ruangan():
                     st.experimental_rerun()
 
         # Bagian untuk menghapus ruangan
-        with st.expander("Hapus ruangan", expanded=False):
+        with st.popover("Hapus ruangan", expanded=False):
             ruangan = read_ruangan()
             if ruangan:
                 # Buat dictionary untuk mapping nama_ruangan ke id_ruangan

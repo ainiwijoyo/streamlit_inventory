@@ -91,7 +91,7 @@ class PDF(FPDF):
 
 
 def laporan_masuk():
-    st.title('CETAK LAPORAN TRANSAKSI masuk')
+    st.title('CETAK LAPORAN TRANSAKSI MASUK')
 
     col1, col2 = st.columns([1, 1])
 

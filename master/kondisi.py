@@ -171,7 +171,7 @@ def tampilkan_semua_kondisi():
             placeholder.empty()
 
         # Bagian untuk menambah kondisi baru
-        with st.expander("Tambah kondisi Baru", expanded=False):
+        with st.popover("Tambah kondisi Baru", expanded=False):
             nama_kondisi = st.text_input("Nama kondisi")
             keterangan = st.text_area("Keterangan")
 
@@ -184,7 +184,7 @@ def tampilkan_semua_kondisi():
                     tampilkan_pesan(pesan, "⚠️", "warning")
 
         # Bagian untuk memperbarui kondisi
-        with st.expander("Perbarui kondisi", expanded=False):
+        with st.popover("Perbarui kondisi", expanded=False):
             kondisi = read_kondisi()
             if kondisi:
                 # Buat dictionary untuk mapping nama_kondisi ke id_kondisi
@@ -216,7 +216,7 @@ def tampilkan_semua_kondisi():
                     st.experimental_rerun()
 
         # Bagian untuk menghapus kondisi
-        with st.expander("Hapus kondisi", expanded=False):
+        with st.popover("Hapus kondisi", expanded=False):
             kondisi = read_kondisi()
             if kondisi:
                 # Buat dictionary untuk mapping nama_kondisi ke id_kondisi

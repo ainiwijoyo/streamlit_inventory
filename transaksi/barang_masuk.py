@@ -63,7 +63,8 @@ def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
     cursor = db.cursor()
 
     try:
-        cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
+        cursor.execute(
+            "SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
         result = cursor.fetchone()
         id_ruangan = result[0] if result else None
 
@@ -72,12 +73,13 @@ def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
             cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan, id_kondisi) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s, %s)",
                            (id_barang, jumlah, tanggal, keterangan, id_ruangan, id_kondisi))
             db.commit()
-            
+
             # Mendapatkan id_transaksi yang baru saja dibuat
             id_transaksi = cursor.lastrowid
 
             # Memperbarui jumlah barang di tb_barang
-            cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
+            cursor.execute(
+                "UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
             db.commit()
 
             # Menambahkan data ke tb_barang_unit dengan nomor seri yang unik
@@ -102,9 +104,12 @@ def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
         db.close()
 
 # Fungsi untuk menghasilkan nomor seri unik untuk id_barang tertentu
+
+
 def generate_nomor_seri(id_barang, cursor):
     # Mencari nomor seri tertinggi untuk id_barang tertentu
-    cursor.execute("SELECT MAX(CAST(SUBSTRING_INDEX(nomor_seri, '-', -1) AS UNSIGNED)) FROM tb_barang_unit WHERE id_barang = %s", (id_barang,))
+    cursor.execute(
+        "SELECT MAX(CAST(SUBSTRING_INDEX(nomor_seri, '-', -1) AS UNSIGNED)) FROM tb_barang_unit WHERE id_barang = %s", (id_barang,))
     result = cursor.fetchone()
     max_nomor_seri = result[0] if result[0] else 0
 
@@ -112,23 +117,19 @@ def generate_nomor_seri(id_barang, cursor):
     nomor_seri_baru = f"{id_barang:04}-{max_nomor_seri + 1:02}"
 
     # Memeriksa apakah nomor seri sudah ada dalam database
-    cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE id_barang = %s AND nomor_seri = %s", (id_barang, nomor_seri_baru))
+    cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE id_barang = %s AND nomor_seri = %s",
+                   (id_barang, nomor_seri_baru))
     result = cursor.fetchone()
 
     # Jika nomor seri sudah ada, cari nomor seri berikutnya yang tersedia
     while result[0] > 0:
         max_nomor_seri += 1
         nomor_seri_baru = f"{id_barang:04}-{max_nomor_seri:02}"
-        cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE id_barang = %s AND nomor_seri = %s", (id_barang, nomor_seri_baru))
+        cursor.execute(
+            "SELECT COUNT(*) FROM tb_barang_unit WHERE id_barang = %s AND nomor_seri = %s", (id_barang, nomor_seri_baru))
         result = cursor.fetchone()
 
     return nomor_seri_baru
-
-
-
-
-
-
 
 
 # Fungsi untuk mendapatkan data transaksi
@@ -178,7 +179,8 @@ def hapus_barang_masuk(id_transaksi):
 
     try:
         # Mendapatkan id_barang dan jumlah dari tb_transaksi
-        cursor.execute("SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+        cursor.execute(
+            "SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
         result = cursor.fetchone()
         id_barang = result[0]
         jumlah = result[1]
@@ -199,11 +201,13 @@ def hapus_barang_masuk(id_transaksi):
         db.commit()
 
         # Menghapus data transaksi dari tb_transaksi
-        cursor.execute("DELETE FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+        cursor.execute(
+            "DELETE FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
         db.commit()
 
         # Update jumlah_sekarang di tb_barang
-        cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
+        cursor.execute(
+            "UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
         db.commit()
 
         st.success("Barang masuk berhasil dihapus!")
@@ -266,18 +270,22 @@ def tampilkan_barang_masuk():
                             st.text_input("Kategori", kategori, disabled=True)
 
                             # Tambahkan kode untuk mengambil ID kondisi "baik"
-                            cursor.execute("SELECT id_kondisi FROM tb_kondisi WHERE nama_kondisi = 'baik'")
+                            cursor.execute(
+                                "SELECT id_kondisi FROM tb_kondisi WHERE nama_kondisi = 'baik'")
                             kondisi_baik = cursor.fetchone()
                             if kondisi_baik:
                                 id_kondisi_baik = kondisi_baik[0]
                                 st.text_input("Kondisi", "Baik", disabled=True)
                             else:
-                                st.error("Kondisi 'baik' tidak ditemukan dalam database.")
+                                st.error(
+                                    "Kondisi 'baik' tidak ditemukan dalam database.")
                                 st.stop()
 
                             jumlah_saat_ini = selected_barang[6]
-                            st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
-                            jumlah = st.number_input("Jumlah", min_value=1, step=1)
+                            st.number_input("Jumlah Saat Ini",
+                                            jumlah_saat_ini, disabled=True)
+                            jumlah = st.number_input(
+                                "Jumlah", min_value=1, step=1)
                             keterangan = st.text_area("Keterangan")
                             submit = st.form_submit_button("Tambah")
 
@@ -286,8 +294,10 @@ def tampilkan_barang_masuk():
                                 st.error("Form keterangan tidak boleh kosong!")
                             else:
                                 # Gunakan id_kondisi_baik saat menambahkan barang masuk
-                                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi_baik)
-                                st.success("Barang masuk berhasil ditambahkan!")
+                                tambah_barang_masuk(
+                                    tanggal, id_barang, jumlah, keterangan, id_kondisi_baik)
+                                st.success(
+                                    "Barang masuk berhasil ditambahkan!")
                                 time.sleep(2)  # Menunggu 2 detik
                                 st.experimental_rerun()
 
@@ -296,7 +306,6 @@ def tampilkan_barang_masuk():
                 else:
                     st.warning("Tidak ada barang yang tersedia.")
                     st.form_submit_button("Tambah", disabled=True)
-
 
     # Tampilkan DataFrame dari transaksi barang masuk
     df_transaksi = get_data_transaksi()

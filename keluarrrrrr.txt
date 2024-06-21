@@ -77,36 +77,24 @@ def tambah_barang_keluar(tanggal, id_barang, jumlah, keterangan, id_kondisi, id_
         cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan, id_kondisi) VALUES (%s, 'keluar', 'selesai', %s, %s, %s, %s, %s)",
                        (id_barang, jumlah, tanggal, keterangan, id_ruangan, id_kondisi))
         db.commit()
-        
-        # Get the last inserted id_transaksi
-        id_transaksi = cursor.lastrowid
 
         # Memperbarui jumlah barang di tb_barang
         cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang - %s WHERE id_barang = %s", (jumlah, id_barang))
         db.commit()
 
-        # Update tb_barang_unit with tanggal and id_transaksi, and then delete
+        # Menghapus data dari tb_barang_unit berdasarkan nomor seri terbaru yang dikeluarkan
         cursor.execute("""
-            UPDATE tb_barang_unit
-            SET tanggal = %s, id_transaksi = %s
+            DELETE FROM tb_barang_unit
             WHERE id_barang = %s AND nomor_seri IN (
                 SELECT nomor_seri FROM (
                     SELECT nomor_seri
                     FROM tb_barang_unit
-                    WHERE id_barang = %s AND (tanggal IS NULL OR id_transaksi IS NULL)
+                    WHERE id_barang = %s
                     ORDER BY CAST(SUBSTRING_INDEX(nomor_seri, '-', -1) AS UNSIGNED) DESC
                     LIMIT %s
                 ) AS temp
             )
-        """, (tanggal, id_transaksi, id_barang, id_barang, jumlah))
-        db.commit()
-
-        # Now delete the updated rows
-        cursor.execute("""
-            DELETE FROM tb_barang_unit
-            WHERE id_barang = %s AND tanggal = %s AND id_transaksi = %s
-            LIMIT %s
-        """, (id_barang, tanggal, id_transaksi, jumlah))
+        """, (id_barang, id_barang, jumlah))
         db.commit()
 
         st.success("Barang keluar berhasil ditambahkan!")
@@ -259,7 +247,7 @@ def tampilkan_barang_keluar():
                         data_barang = get_data_barang()  # Mengambil semua data barang tanpa filter berdasarkan ruangan
                         if data_barang:
                             pilihan_barang = {
-                                barang[1]: barang[0] for barang in data_barang if barang[6] > 0
+                                f"{barang[1]} ({barang[6]})": barang[0] for barang in data_barang if barang[6] > 0
                             }
                             if pilihan_barang:
                                 barang_terpilih = st.selectbox("Barang", list(pilihan_barang.keys()))

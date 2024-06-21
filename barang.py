@@ -65,12 +65,18 @@ def get_kondisi_name(id_kondisi):
 
     query = "SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s"
     cursor.execute(query, (id_kondisi,))
-    kondisi_name = cursor.fetchone()[0]
+    result = cursor.fetchone()
+
+    if result:
+        kondisi_name = result[0]
+    else:
+        kondisi_name = "Kondisi tidak ditemukan"
 
     cursor.close()
     db.close()
 
     return kondisi_name
+
 
 # Fungsi untuk mengambil data referensi untuk dropdown
 
@@ -170,8 +176,8 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
 
         # Insert ke tb_barang_unit
         query_barang_unit = """
-            INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri)
-            VALUES (%s, %s, %s)
+            INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri, tanggal)
+            VALUES (%s, %s, %s, %s)
         """
         for i in range(jumlah_awal):
             nomor_seri = f"{next_id:04}-{i+1:02}"  # Format nomor seri, misal: 1-0001, 1-0002, dll.
@@ -184,7 +190,7 @@ def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, ketera
                 i += 1
                 nomor_seri = f"{next_id:04}-{i+1:02}"
 
-            cursor.execute(query_barang_unit, (next_id, id_kondisi, nomor_seri))
+            cursor.execute(query_barang_unit, (next_id, id_kondisi, nomor_seri, tanggal_barang))
 
         db.commit()
         show_message("success", "Data barang berhasil ditambahkan!")

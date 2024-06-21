@@ -58,39 +58,48 @@ def get_nama_kondisi(id_kondisi):
 
 
 # Fungsi untuk menambah data barang masuk
-# Fungsi untuk menambah data barang masuk
 def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
     db = koneksi_db()
     cursor = db.cursor()
 
-    cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
-    result = cursor.fetchone()
-    id_ruangan = result[0] if result else None
+    try:
+        cursor.execute("SELECT id_ruangan FROM tb_barang WHERE id_barang = %s", (id_barang,))
+        result = cursor.fetchone()
+        id_ruangan = result[0] if result else None
 
-    if id_ruangan:
-        # Memasukkan data ke dalam tb_transaksi dengan id_ruangan dan id_kondisi
-        cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan, id_kondisi) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s, %s)",
-                       (id_barang, jumlah, tanggal, keterangan, id_ruangan, id_kondisi))
-        db.commit()
+        if id_ruangan:
+            # Memasukkan data ke dalam tb_transaksi dengan id_ruangan dan id_kondisi
+            cursor.execute("INSERT INTO tb_transaksi (id_barang, jenis_transaksi, status, jumlah, tanggal, keterangan_transaksi, id_ruangan, id_kondisi) VALUES (%s, 'masuk', 'selesai', %s, %s, %s, %s, %s)",
+                           (id_barang, jumlah, tanggal, keterangan, id_ruangan, id_kondisi))
+            db.commit()
+            
+            # Mendapatkan id_transaksi yang baru saja dibuat
+            id_transaksi = cursor.lastrowid
 
-        # Memperbarui jumlah barang di tb_barang
-        cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
-        db.commit()
-
-        # Menambahkan data ke tb_barang_unit dengan nomor seri yang unik
-        next_id = id_barang
-        for i in range(jumlah):
-            nomor_seri = generate_nomor_seri(next_id, cursor)
-
-            cursor.execute("INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri) VALUES (%s, %s, %s)",
-                           (next_id, id_kondisi, nomor_seri))
+            # Memperbarui jumlah barang di tb_barang
+            cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
             db.commit()
 
-    else:
-        st.error("Gagal menambahkan barang masuk: Ruangan tidak ditemukan.")
+            # Menambahkan data ke tb_barang_unit dengan nomor seri yang unik
+            next_id = id_barang
+            for i in range(jumlah):
+                nomor_seri = generate_nomor_seri(next_id, cursor)
 
-    cursor.close()
-    db.close()
+                cursor.execute("INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri, tanggal, id_transaksi) VALUES (%s, %s, %s, %s, %s)",
+                               (next_id, id_kondisi, nomor_seri, tanggal, id_transaksi))
+                db.commit()
+
+            st.success("Barang masuk berhasil ditambahkan!")
+        else:
+            st.error("Gagal menambahkan barang masuk: Ruangan tidak ditemukan.")
+
+    except Exception as e:
+        db.rollback()
+        st.error(f"Terjadi kesalahan saat menambahkan barang masuk: {str(e)}")
+
+    finally:
+        cursor.close()
+        db.close()
 
 # Fungsi untuk menghasilkan nomor seri unik untuk id_barang tertentu
 def generate_nomor_seri(id_barang, cursor):
@@ -256,19 +265,19 @@ def tampilkan_barang_masuk():
                             kategori = get_nama_kategori(selected_barang[4])
                             st.text_input("Kategori", kategori, disabled=True)
 
-                            # Menampilkan pilihan kondisi barang
-                            cursor.execute("SELECT id_kondisi, nama_kondisi FROM tb_kondisi")
-                            kondisi_data = cursor.fetchall()
-                            pilihan_kondisi = {
-                                f"{kondisi[1]}": kondisi[0] for kondisi in kondisi_data
-                            }
-                            kondisi_terpilih = st.selectbox("Kondisi", list(pilihan_kondisi.keys()))
+                            # Tambahkan kode untuk mengambil ID kondisi "baik"
+                            cursor.execute("SELECT id_kondisi FROM tb_kondisi WHERE nama_kondisi = 'baik'")
+                            kondisi_baik = cursor.fetchone()
+                            if kondisi_baik:
+                                id_kondisi_baik = kondisi_baik[0]
+                                st.text_input("Kondisi", "Baik", disabled=True)
+                            else:
+                                st.error("Kondisi 'baik' tidak ditemukan dalam database.")
+                                st.stop()
 
                             jumlah_saat_ini = selected_barang[6]
-                            st.number_input("Jumlah Saat Ini",
-                                            jumlah_saat_ini, disabled=True)
-                            jumlah = st.number_input(
-                                "Jumlah", min_value=1, step=1)
+                            st.number_input("Jumlah Saat Ini", jumlah_saat_ini, disabled=True)
+                            jumlah = st.number_input("Jumlah", min_value=1, step=1)
                             keterangan = st.text_area("Keterangan")
                             submit = st.form_submit_button("Tambah")
 
@@ -276,10 +285,8 @@ def tampilkan_barang_masuk():
                             if keterangan.strip() == "":
                                 st.error("Form keterangan tidak boleh kosong!")
                             else:
-                                # Ambil id_kondisi dari pilihan kondisi yang dipilih
-                                id_kondisi = pilihan_kondisi.get(kondisi_terpilih)
-                                tambah_barang_masuk(
-                                    tanggal, id_barang, jumlah, keterangan, id_kondisi)
+                                # Gunakan id_kondisi_baik saat menambahkan barang masuk
+                                tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi_baik)
                                 st.success("Barang masuk berhasil ditambahkan!")
                                 time.sleep(2)  # Menunggu 2 detik
                                 st.experimental_rerun()

@@ -168,8 +168,7 @@ def get_data_transaksi_kembalikan():
     return data_transaksi_kembalikan
 
 # Fungsi untuk mengembalikan barang pinjam dan mengubah status barang_unit
-# Fungsi untuk mengembalikan barang pinjam dan mengubah status barang_unit
-def kembalikan_barang(id_transaksi, jumlah_rusak, kondisi_rusak):
+def kembalikan_barang(id_transaksi, jumlah_rusak):
     cursor.execute("SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
     result = cursor.fetchone()
     id_barang = result[0]
@@ -177,23 +176,21 @@ def kembalikan_barang(id_transaksi, jumlah_rusak, kondisi_rusak):
     tanggal_kembali = datetime.now().strftime('%Y-%m-%d')
 
     if jumlah_rusak <= jumlah:
-        cursor.execute("UPDATE tb_transaksi SET status = 'selesai', tanggal_kembali = %s, jumlah_rusak = %s WHERE id_transaksi = %s", (tanggal_kembali, jumlah_rusak, id_transaksi))
+        cursor.execute("UPDATE tb_transaksi SET status = 'selesai', tanggal_kembali = %s WHERE id_transaksi = %s", (tanggal_kembali, id_transaksi))
         db.commit()
 
-        # Selalu tambahkan jumlah barang yang dikembalikan ke jumlah_sekarang
         cursor.execute("UPDATE tb_barang SET jumlah_sekarang = jumlah_sekarang + %s WHERE id_barang = %s", (jumlah, id_barang))
         db.commit()
 
-        # Update status di tb_barang_unit
+        # Update status di tb_barang_unit dari 'dipinjam' kembali menjadi 'ada' atau 'rusak'
         jumlah_baik = jumlah - jumlah_rusak
         if jumlah_baik > 0:
-            cursor.execute("UPDATE tb_barang_unit SET status = 'ada' WHERE id_barang = %s AND status = 'dipinjam' LIMIT %s", (id_barang, jumlah_baik))
+                    cursor.execute("UPDATE tb_barang_unit SET status = 'ada' WHERE id_barang = %s AND status = 'dipinjam' LIMIT %s", (id_barang, jumlah_baik))
         db.commit()
 
         if jumlah_rusak > 0:
-            for nomor_seri, kondisi in kondisi_rusak.items():
-                cursor.execute("UPDATE tb_barang_unit SET status = 'ada', id_kondisi = %s WHERE id_barang = %s AND nomor_seri = %s", (kondisi, id_barang, nomor_seri))
-        db.commit()
+            cursor.execute("UPDATE tb_barang_unit SET status = 'rusak' WHERE id_barang = %s AND status = 'dipinjam' LIMIT %s", (id_barang, jumlah_rusak))
+            db.commit()
 
         st.success("Barang pinjam berhasil dikembalikan!")
     else:
@@ -354,6 +351,16 @@ def tampilkan_barang_pinjam():
                                 nomor_seri_rusak.append(nomor_seri)
                                 kondisi_rusak[nomor_seri] = 2 if kondisi == "Rusak Ringan" else 3
 
+                        jumlah_hilang = st.number_input("Jumlah Hilang", min_value=0, max_value=jumlah_pinjam - jumlah_rusak, step=1)
+
+                        nomor_seri_hilang = []
+                        if jumlah_hilang > 0:
+                            nomor_seri_tersedia = [ns for ns in nomor_seri_dipinjam if ns not in nomor_seri_rusak]
+                            for i in range(jumlah_hilang):
+                                nomor_seri = st.selectbox(f"Pilih Nomor Seri Barang Hilang {i+1}", nomor_seri_tersedia, key=f"hilang_{i}")
+                                nomor_seri_hilang.append(nomor_seri)
+                                nomor_seri_tersedia.remove(nomor_seri)
+
                         if st.button("Kembalikan"):
                             # Update status dan kondisi barang
                             for nomor_seri in nomor_seri_dipinjam:
@@ -363,6 +370,12 @@ def tampilkan_barang_pinjam():
                                         SET status = 'ada', id_kondisi = %s 
                                         WHERE nomor_seri = %s
                                     """, (kondisi_rusak[nomor_seri], nomor_seri))
+                                elif nomor_seri in nomor_seri_hilang:
+                                    cursor.execute("""
+                                        UPDATE tb_barang_unit 
+                                        SET status = 'hilang'
+                                        WHERE nomor_seri = %s
+                                    """, (nomor_seri,))
                                 else:
                                     cursor.execute("""
                                         UPDATE tb_barang_unit 
@@ -375,24 +388,23 @@ def tampilkan_barang_pinjam():
                                 UPDATE tb_transaksi 
                                 SET status = 'selesai', 
                                     tanggal_kembali = %s,
-                                    jumlah_rusak = %s
+                                    jumlah_rusak = %s,
+                                    jumlah_hilang = %s
                                 WHERE id_transaksi = %s
-                            """, (datetime.now().date(), jumlah_rusak, id_transaksi))
+                            """, (datetime.now().date(), jumlah_rusak, jumlah_hilang, id_transaksi))
 
                             # Update jumlah di tb_barang
                             cursor.execute("""
                                 UPDATE tb_barang 
-                                SET jumlah_sekarang = jumlah_sekarang + %s
+                                SET jumlah_sekarang = jumlah_sekarang + %s - %s
                                 WHERE id_barang = (SELECT id_barang FROM tb_transaksi WHERE id_transaksi = %s)
-                            """, (jumlah_pinjam, id_transaksi))
+                            """, (jumlah_pinjam - jumlah_hilang, jumlah_rusak, id_transaksi))
 
                             db.commit()
                             st.success("Barang pinjam berhasil dikembalikan!")
                             st.experimental_rerun()
                     else:
                         st.write("Tidak ada data barang pinjam dalam database.")
-            else:
-                st.write("Tidak ada data barang pinjam yang perlu dikembalikan.")
 
 if __name__ == "__main__":
     tampilkan_barang_pinjam()

@@ -119,29 +119,56 @@ def main():
     if st.session_state.logged_in:
         st.header("Selamat datang!")
 
+        # Tambahkan CSS custom untuk mengatur tata letak metrik
+        st.markdown("""
+        <style>
+            .metric-container {
+                text-align: center;
+            }
+            .metric-title {
+                color: inherit;
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+            .metric-value {
+                font-size: 24px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .metric-icon {
+                width: 24px;
+                text-align: center;
+                margin-right: 10px;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         # Tambahkan metrik yang ingin ditampilkan setelah login berhasil
         col1, col2, col3, col4 = st.columns(4)
 
-        col1.markdown(
-            f"<h2 style='color:black; font-size: 22px; font-weight: bold;'>"
-            f" STOK BARANG </h2><h3><i class='fas fa-box' style='font-size:24px;color:black;'></i>  {ambil_jumlah_barang()}</h3>",
-            unsafe_allow_html=True
-        )
-        col2.markdown(
-            f"<h2 style='color:#096352; font-size: 22px; font-weight: bold;'>"
-            f"BARANG MASUK</h2><h3><i class='fas fa-arrow-down' style='font-size:24px;color:#096352;'></i>  {ambil_jumlah_barang_masuk()}</h3>",
-            unsafe_allow_html=True
-        )
-        col3.markdown(
-            f"<h2 style='color:red; font-size: 22px; font-weight: bold;'>"
-            f"BARANG KELUAR</h2><h3> <i class='fas fa-arrow-up' style='font-size:24px;color:red;'></i>  {ambil_jumlah_barang_keluar()}</h3>",
-            unsafe_allow_html=True
-        )
-        col4.markdown(
-            f"<h2 style='color:#E8B536; font-size: 22px; font-weight: bold;'>"
-            f"PEMINJAMAN</h2><h3><i class='fas fa-hand-holding' style='font-size:24px;color:#E8B536;'></i>  {ambil_jumlah_peminjaman()}</h3>",
-            unsafe_allow_html=True
-        )
+        metrics = [
+            {"title": "STOK BARANG", "icon": "box", "color": "black", "value": ambil_jumlah_barang()},
+            {"title": "BARANG MASUK", "icon": "arrow-down", "color": "#096352", "value": ambil_jumlah_barang_masuk()},
+            {"title": "BARANG KELUAR", "icon": "arrow-up", "color": "red", "value": ambil_jumlah_barang_keluar()},
+            {"title": "PEMINJAMAN", "icon": "hand-holding", "color": "#E8B536", "value": ambil_jumlah_peminjaman()}
+        ]
+
+        for col, metric in zip([col1, col2, col3, col4], metrics):
+            col.markdown(f"""
+            <div class="metric-container">
+                <div class="metric-title" style="color:{metric['color']};">
+                    {metric['title']}
+                </div>
+                <div class="metric-value">
+                    <div class="metric-icon">
+                        <i class="fas fa-{metric['icon']}" style="font-size:24px;color:{metric['color']};"></i>
+                    </div>
+                    <span>{metric['value']}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         # Menu di sidebar
         with st.sidebar:

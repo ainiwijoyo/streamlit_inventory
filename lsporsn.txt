@@ -117,7 +117,7 @@ class PDF(FPDF):
         self.set_font('Arial', 'B', 8)  # Mengurangi ukuran font
 
         # Headers and initial widths
-        headers = ['NO', 'TANGGAL', 'NAMA', 'MEREK', 'RUANGAN', 'BAIK', 'RUSAK RINGAN', 'RUSAK BERAT', 'KETERANGAN', 'JUMLAH']
+        headers = ['NO', 'TANGGAL', 'NAMA', 'MEREK', 'RUANGAN', 'BAIK', 'RUSAK RINGAN', 'RUSAK BERAT', 'KET', 'JUMLAH']
         widths = [10, 20, 30, 25, 25, 15, 20, 20, 30, 15]
 
         # Calculate optimal cell widths based on content

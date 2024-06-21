@@ -171,7 +171,7 @@ def tampilkan_semua_merek():
             placeholder.empty()
 
         # Bagian untuk menambah merek baru
-        with st.popover("Tambah merek Baru", expanded=False):
+        with st.popover("Tambah merek Baru"):
             nama_merek = st.text_input("Nama merek")
             keterangan = st.text_area("Keterangan")
 
@@ -184,7 +184,7 @@ def tampilkan_semua_merek():
                     tampilkan_pesan(pesan, "⚠️", "warning")
 
         # Bagian untuk memperbarui merek
-        with st.popover("Perbarui merek", expanded=False):
+        with st.popover("Perbarui merek"):
             merek = read_merek()
             if merek:
                 # Buat dictionary untuk mapping nama_merek ke id_merek
@@ -216,7 +216,7 @@ def tampilkan_semua_merek():
                     st.experimental_rerun()
 
         # Bagian untuk menghapus merek
-        with st.popover("Hapus merek", expanded=False):
+        with st.popover("Hapus merek"):
             merek = read_merek()
             if merek:
                 # Buat dictionary untuk mapping nama_merek ke id_merek

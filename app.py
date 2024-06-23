@@ -90,31 +90,40 @@ def login(username, password):
     return False
 
 def logout_callback():
-    with st.popover("Logout"):
-        st.markdown("""
-        <style>
-        .stButton > button {
-            width: 100%;
-            font-weight: bold;
-        }
-        .logout-text {
-            text-align: center;
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        st.markdown('<p class="logout-text">Apakah Anda yakin ingin keluar?</p>', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Ya", key="logout_yes"):
-                st.session_state.clear()
-                st.experimental_rerun()
-        with col2:
-            if st.button("Tidak", key="logout_no"):
-                st.experimental_rerun()
+    if 'show_logout_popover' not in st.session_state:
+        st.session_state.show_logout_popover = True  # Langsung set ke True
+
+    if st.session_state.show_logout_popover:
+        with st.popover("Logout"):
+            st.markdown("""
+            <style>
+            .stButton > button {
+                width: 100%;
+                font-weight: bold;
+            }
+            .logout-text {
+                text-align: center;
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            st.markdown('<p class="logout-text">Apakah Anda yakin ingin keluar?</p>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Ya", key="logout_yes"):
+                    st.session_state.clear()
+                    st.experimental_rerun()
+            with col2:
+                if st.button("Tidak", key="logout_no"):
+                    st.session_state.show_logout_popover = False
+                    st.experimental_rerun()
+    else:
+        if st.button("Logout"):
+            st.session_state.show_logout_popover = True
+            st.experimental_rerun()
 
 def display_logged_in_content():
     st.header(f"Selamat datang, {st.session_state.username}!")

@@ -2,20 +2,21 @@ import streamlit as st
 import mysql.connector
 from fpdf import FPDF
 from datetime import datetime
+from koneksi import koneksi_db
 import io
 import base64
 
-def koneksi_db():
-    """
-    Fungsi untuk koneksi ke database MySQL
-    """
-    db = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="",
-        database="db_stinven"
-    )
-    return db
+# def koneksi_db():
+#     """
+#     Fungsi untuk koneksi ke database MySQL
+#     """
+#     db = mysql.connector.connect(
+#         host="127.0.0.1",
+#         user="root",
+#         password="",
+#         database="db_stinven"
+#     )
+#     return db
 
 # Fungsi untuk mengambil data berdasarkan periode waktu
 def ambil_data(tgl_dari, tgl_sampai):

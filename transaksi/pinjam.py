@@ -54,6 +54,38 @@ def get_nama_kondisi(id_kondisi):
     result = cursor.fetchone()
     return result[0] if result else None
 
+def get_detail_transaksi(id_transaksi):
+    query = """
+    SELECT t.id_transaksi, t.tanggal, t.status, b.nama_barang, t.id_barang, t.id_ruangan, t.jumlah, t.keterangan_transaksi, t.nama_peminjam, t.nomor_seri
+    FROM tb_transaksi t
+    JOIN tb_barang b ON t.id_barang = b.id_barang
+    WHERE t.id_transaksi = %s AND t.jenis_transaksi = 'pinjam'
+    """
+    cursor.execute(query, (id_transaksi,))
+    result = cursor.fetchone()
+    if result:
+        return {
+            'id_transaksi': result[0],
+            'tanggal': result[1],
+            'status': result[2],
+            'nama_barang': result[3],
+            'id_barang': result[4],
+            'id_ruangan': result[5],
+            'jumlah': result[6],
+            'keterangan': result[7],
+            'nama_peminjam': result[8],
+            'nomor_seri': result[9].split(',') if result[9] else []
+        }
+    return None
+
+def update_transaksi(id_transaksi, tanggal, id_ruangan, jumlah, keterangan, nama_peminjam, nomor_seri):
+    cursor.execute("""
+    UPDATE tb_transaksi
+    SET tanggal = %s, id_ruangan = %s, jumlah = %s, keterangan_transaksi = %s, nama_peminjam = %s, nomor_seri = %s
+    WHERE id_transaksi = %s
+    """, (tanggal, id_ruangan, jumlah, keterangan, nama_peminjam, ','.join(nomor_seri), id_transaksi))
+    db.commit()
+
 # Fungsi untuk menambah data barang pinjam
 def tambah_barang_pinjam(tanggal, id_barang, jumlah, keterangan, id_ruangan_terpilih, nomor_seri_terpilih, nama_peminjam):
     cursor.execute("SELECT jumlah_sekarang FROM tb_barang WHERE id_barang = %s", (id_barang,))
@@ -214,7 +246,7 @@ def tampilkan_barang_pinjam():
 
     tambah_barang_pinjam_popover = st.popover("Tambah Barang pinjam")
     with tambah_barang_pinjam_popover:
-        tanggal = st.date_input("Tanggal", datetime.now())
+        tanggal = st.date_input("Tanggal", datetime.now(), key="tambah_tanggal")
         nama_peminjam = st.text_input("Nama Peminjam")
         data_barang = get_data_barang()
         data_ruangan = get_data_ruangan()
@@ -297,8 +329,6 @@ def tampilkan_barang_pinjam():
         else:
             st.warning("Tidak ada barang yang tersedia.")
 
-    # ... (kode selanjutnya tetap sama)
-
     df_transaksi = get_data_transaksi()
     if df_transaksi is not None and not df_transaksi.empty:
         st.write("Data Transaksi Barang pinjam")
@@ -329,6 +359,44 @@ def tampilkan_barang_pinjam():
                     st.experimental_rerun()
             else:
                 st.write("Tidak ada data barang pinjam dalam database.")
+        
+        edit_barang_pinjam_popover = st.popover("Edit Barang Pinjam")
+        with edit_barang_pinjam_popover:
+            data_transaksi_edit = get_data_transaksi_kembalikan()
+            if data_transaksi_edit:
+                pilihan_transaksi_edit = {transaksi['deskripsi']: transaksi['id_transaksi'] for transaksi in data_transaksi_edit}
+                deskripsi_transaksi_edit = st.selectbox("Pilih Barang Pinjam yang akan diedit", list(pilihan_transaksi_edit.keys()))
+                if deskripsi_transaksi_edit:
+                    id_transaksi = pilihan_transaksi_edit[deskripsi_transaksi_edit]
+                    detail_transaksi = get_detail_transaksi(id_transaksi)
+                    
+                    if detail_transaksi:
+                        tanggal = st.date_input("Tanggal", detail_transaksi['tanggal'], key="edit_tanggal")
+                        nama_peminjam = st.text_input("Nama Peminjam", detail_transaksi['nama_peminjam'])
+                        
+                        data_ruangan = get_data_ruangan()
+                        pilihan_ruangan = {ruangan[1]: ruangan[0] for ruangan in data_ruangan}
+                        ruangan_terpilih = st.selectbox("Ruangan Tujuan", list(pilihan_ruangan.keys()), index=list(pilihan_ruangan.values()).index(detail_transaksi['id_ruangan']))
+                        id_ruangan_terpilih = pilihan_ruangan[ruangan_terpilih]
+                        
+                        jumlah_pinjam = st.number_input("Jumlah Barang yang Dipinjam", min_value=1, value=detail_transaksi['jumlah'])
+                        
+                        nomor_seri_dipinjam = detail_transaksi['nomor_seri']
+                        nomor_seri_terpilih = st.multiselect("Pilih Nomor Seri", nomor_seri_dipinjam, default=nomor_seri_dipinjam)
+                        
+                        keterangan = st.text_area("Keterangan", detail_transaksi['keterangan'])
+                        
+                        if st.button("Update Barang Pinjam"):
+                            if len(nomor_seri_terpilih) == jumlah_pinjam:
+                                update_transaksi(id_transaksi, tanggal, id_ruangan_terpilih, jumlah_pinjam, keterangan, nama_peminjam, nomor_seri_terpilih)
+                                st.success("Data barang pinjam berhasil diupdate!")
+                                st.experimental_rerun()
+                            else:
+                                st.error("Pastikan jumlah nomor seri yang dipilih sesuai dengan jumlah barang yang dipinjam.")
+                    else:
+                        st.error("Data transaksi tidak ditemukan.")
+            else:
+                st.write("Tidak ada data barang pinjam yang dapat diedit.")
 
         kembalikan_barang_pinjam_popover = st.popover("Kembalikan Barang pinjam")
         with kembalikan_barang_pinjam_popover:

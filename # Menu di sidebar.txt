@@ -1,0 +1,24 @@
+# Menu di sidebar
+with st.sidebar:
+    st.title("SISTEM INFORMASI INVENTARIS BARANG TIK FKES UNJAYA")
+
+    # Daftar menu untuk sidebar
+    if st.session_state.jenis_akun == "dekan":
+        menu_items = ['Laporan']
+        menu_icons = ['clipboard2-fill']
+    else:
+        menu_items = ["Home", "Master", 'Stok Barang', 'Transaksi', 'Laporan']
+        menu_icons = ['house', 'tools', 'bag-check', 'card-checklist', 'clipboard2-fill']
+
+        # Menambahkan Settings untuk superadmin
+        if st.session_state.jenis_akun == "superadmin":
+            menu_items.append("Settings")
+            menu_icons.append('gear')
+
+    selected = option_menu("PILIH MENU", menu_items,
+                           icons=menu_icons,
+                           menu_icon="cast",
+                           default_index=0)
+
+    # Add logout button as a separate item
+    logout_callback()

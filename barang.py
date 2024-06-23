@@ -364,9 +364,7 @@ def update_unit_condition(nomor_seri, id_kondisi):
 
 
 # Bagian yang relevan dari file barang.py
-# Bagian yang relevan dari file barang.py
 def tampilkan_data_barang():
-
     # Mengambil data referensi untuk dropdown
     merek_data, kategori_data, ruangan_data, kondisi_data = get_referensi_data()
 
@@ -443,17 +441,40 @@ def tampilkan_data_barang():
                 selected_item = df[df['ID Barang'] == id_barang].iloc[0]
 
                 nama_barang = st.text_input("Nama Barang", selected_item['NAMA BARANG'], key="nama_barang_edit")
-                id_merek = st.selectbox("Merek", [merek[1] for merek in merek_data], index=[merek[1] for merek in merek_data].index(selected_item['MEREK']), key="merek_edit")
-                id_kategori = st.selectbox("Kategori", [kategori[1] for kategori in kategori_data], index=[kategori[1] for kategori in kategori_data].index(selected_item['KATEGORI']), key="kategori_edit")
-                id_ruangan = st.selectbox("Ruangan", [ruangan[1] for ruangan in ruangan_data], index=[ruangan[1] for ruangan in ruangan_data].index(selected_item['RUANGAN']), key="ruangan_edit")
+                
+                merek_options = [merek[1] for merek in merek_data]
+                try:
+                    default_merek_index = merek_options.index(selected_item['MEREK'])
+                except ValueError:
+                    default_merek_index = 0
+                    st.warning(f"The brand '{selected_item['MEREK']}' for this item is not in the current list of brands. Please select a valid brand.")
+                id_merek = st.selectbox("Merek", merek_options, index=default_merek_index, key="merek_edit")
+
+                kategori_options = [kategori[1] for kategori in kategori_data]
+                try:
+                    default_kategori_index = kategori_options.index(selected_item['KATEGORI'])
+                except ValueError:
+                    default_kategori_index = 0
+                    st.warning(f"The category '{selected_item['KATEGORI']}' for this item is not in the current list of categories. Please select a valid category.")
+                id_kategori = st.selectbox("Kategori", kategori_options, index=default_kategori_index, key="kategori_edit")
+
+                ruangan_options = [ruangan[1] for ruangan in ruangan_data]
+                try:
+                    default_ruangan_index = ruangan_options.index(selected_item['RUANGAN'])
+                except ValueError:
+                    default_ruangan_index = 0
+                    st.warning(f"The room '{selected_item['RUANGAN']}' for this item is not in the current list of rooms. Please select a valid room.")
+                id_ruangan = st.selectbox("Ruangan", ruangan_options, index=default_ruangan_index, key="ruangan_edit")
+
                 jumlah_awal = st.number_input("Jumlah Awal", value=selected_item['JML AWAL'], key="jumlah_awal_edit")
                 keterangan_barang = st.text_area("Keterangan Barang", selected_item['KETERANGAN'], key="keterangan_edit")
                 tanggal_barang = st.date_input("Tanggal Barang", selected_item['TGL PENGADAAN'], key="tanggal_edit")
+                
                 if st.button("Simpan Perubahan", key="simpan_perubahan_button"):
                     id_merek = next(merek[0] for merek in merek_data if merek[1] == id_merek)
                     id_kategori = next(kategori[0] for kategori in kategori_data if kategori[1] == id_kategori)
                     id_ruangan = next(ruangan[0] for ruangan in ruangan_data if ruangan[1] == id_ruangan)
-                    id_kondisi = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == id_kondisi)
+                    id_kondisi = next(kondisi[0] for kondisi in kondisi_data if kondisi[1] == selected_item['KONDISI'])
 
                     update_data(id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, keterangan_barang, tanggal_barang)
                     st.experimental_rerun()

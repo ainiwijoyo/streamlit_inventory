@@ -11,16 +11,12 @@ db = koneksi_db()
 cursor = db.cursor()
 
 # Fungsi untuk mendapatkan data dari tabel tb_barang
-
-
 def get_data_barang():
     cursor.execute(
         "SELECT id_barang, nama_barang, id_ruangan, id_merek, id_kategori, id_kondisi, jumlah_sekarang FROM tb_barang")
     return cursor.fetchall()
 
 # Fungsi untuk mendapatkan data dari tabel tb_ruangan
-
-
 def get_nama_ruangan(id_ruangan):
     cursor.execute(
         "SELECT nama_ruangan FROM tb_ruangan WHERE id_ruangan = %s", (id_ruangan,))
@@ -28,8 +24,6 @@ def get_nama_ruangan(id_ruangan):
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_merek
-
-
 def get_nama_merek(id_merek):
     cursor.execute(
         "SELECT nama_merek FROM tb_merek WHERE id_merek = %s", (id_merek,))
@@ -37,8 +31,6 @@ def get_nama_merek(id_merek):
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kategori
-
-
 def get_nama_kategori(id_kategori):
     cursor.execute(
         "SELECT nama_kategori FROM tb_kategori WHERE id_kategori = %s", (id_kategori,))
@@ -46,16 +38,11 @@ def get_nama_kategori(id_kategori):
     return result[0] if result else None
 
 # Fungsi untuk mendapatkan data dari tabel tb_kondisi
-
-
 def get_nama_kondisi(id_kondisi):
     cursor.execute(
         "SELECT nama_kondisi FROM tb_kondisi WHERE id_kondisi = %s", (id_kondisi,))
     result = cursor.fetchone()
     return result[0] if result else None
-
-# Fungsi untuk menambah data barang masuk
-
 
 # Fungsi untuk menambah data barang masuk
 def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
@@ -104,8 +91,6 @@ def tambah_barang_masuk(tanggal, id_barang, jumlah, keterangan, id_kondisi):
         db.close()
 
 # Fungsi untuk menghasilkan nomor seri unik untuk id_barang tertentu
-
-
 def generate_nomor_seri(id_barang, cursor):
     # Mencari nomor seri tertinggi untuk id_barang tertentu
     cursor.execute(
@@ -131,10 +116,7 @@ def generate_nomor_seri(id_barang, cursor):
 
     return nomor_seri_baru
 
-
 # Fungsi untuk mendapatkan data transaksi
-
-
 def get_data_transaksi():
     query = """
     SELECT t.tanggal, b.nama_barang, m.nama_merek, k.nama_kategori, r.nama_ruangan, c.nama_kondisi, t.jumlah, t.keterangan_transaksi
@@ -155,8 +137,6 @@ def get_data_transaksi():
     return pd.DataFrame(result, columns=columns)
 
 # Fungsi untuk mendapatkan data transaksi untuk hapus barang masuk
-
-
 def get_data_transaksi_hapus():
     query = """
     SELECT t.id_transaksi, t.tanggal, b.nama_barang
@@ -171,8 +151,6 @@ def get_data_transaksi_hapus():
     return data_transaksi_hapus
 
 # Fungsi untuk menghapus barang masuk berdasarkan id_transaksi
-
-
 def hapus_barang_masuk(id_transaksi):
     db = koneksi_db()
     cursor = db.cursor()
@@ -220,8 +198,6 @@ def hapus_barang_masuk(id_transaksi):
     db.close()
 
 # Fungsi untuk membersihkan data transaksi yang tidak valid
-
-
 def bersihkan_data_transaksi():
     cursor.execute("""
         DELETE FROM tb_transaksi
@@ -229,6 +205,76 @@ def bersihkan_data_transaksi():
     """)
     db.commit()
 
+# Fungsi untuk mendapatkan data transaksi untuk edit
+def get_data_transaksi_edit():
+    query = """
+    SELECT t.id_transaksi, t.tanggal, b.nama_barang, r.id_ruangan, t.jumlah, t.keterangan_transaksi
+    FROM tb_transaksi t
+    JOIN tb_barang b ON t.id_barang = b.id_barang
+    JOIN tb_ruangan r ON t.id_ruangan = r.id_ruangan
+    WHERE t.jenis_transaksi = 'masuk'
+    """
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
+
+# Fungsi untuk memperbarui barang masuk
+def update_barang_masuk(id_transaksi, tanggal, id_ruangan, jumlah, keterangan):
+    db = koneksi_db()
+    cursor = db.cursor()
+
+    try:
+        # Get the original quantity
+        cursor.execute("SELECT jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+        original_jumlah = cursor.fetchone()[0]
+
+        # Update the transaction
+        cursor.execute("""
+            UPDATE tb_transaksi 
+            SET tanggal = %s, id_ruangan = %s, jumlah = %s, keterangan_transaksi = %s
+            WHERE id_transaksi = %s
+        """, (tanggal, id_ruangan, jumlah, keterangan, id_transaksi))
+
+        # Get the id_barang
+        cursor.execute("SELECT id_barang FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+        id_barang = cursor.fetchone()[0]
+
+        # Update the quantity in tb_barang
+        quantity_difference = jumlah - original_jumlah
+        cursor.execute("""
+            UPDATE tb_barang 
+            SET jumlah_sekarang = jumlah_sekarang + %s
+            WHERE id_barang = %s
+        """, (quantity_difference, id_barang))
+
+        # If quantity increased, add new entries to tb_barang_unit
+        if quantity_difference > 0:
+            for _ in range(quantity_difference):
+                nomor_seri = generate_nomor_seri(id_barang, cursor)
+                cursor.execute("""
+                    INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri, tanggal, id_transaksi)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (id_barang, 1, nomor_seri, tanggal, id_transaksi))  # Assuming id_kondisi 1 is 'baik'
+
+        # If quantity decreased, remove entries from tb_barang_unit
+        elif quantity_difference < 0:
+            cursor.execute("""
+                DELETE FROM tb_barang_unit
+                WHERE id_barang = %s AND id_transaksi = %s
+                ORDER BY CAST(SUBSTRING_INDEX(nomor_seri, '-', -1) AS UNSIGNED) DESC
+                LIMIT %s
+            """, (id_barang, id_transaksi, abs(quantity_difference)))
+
+        db.commit()
+        st.success("Barang masuk berhasil diperbarui!")
+
+    except Exception as e:
+        db.rollback()
+        st.error(f"Terjadi kesalahan saat memperbarui barang masuk: {str(e)}")
+
+    finally:
+        cursor.close()
+        db.close()
 
 def tampilkan_barang_masuk():
     st.title("BARANG MASUK")
@@ -236,7 +282,6 @@ def tampilkan_barang_masuk():
     # Bersihkan data transaksi yang tidak valid sebelum menampilkan data
     bersihkan_data_transaksi()
 
-    # Tambah Barang Masuk
     # Tambah Barang Masuk
     tambah_barang_masuk_popover = st.popover("Tambah Barang Masuk")
     with tambah_barang_masuk_popover:
@@ -330,9 +375,44 @@ def tampilkan_barang_masuk():
                     st.experimental_rerun()
             else:
                 st.write("Tidak ada data barang masuk dalam database.")
+
+        # Edit Barang Masuk
+        edit_barang_masuk_popover = st.popover("Edit Barang Masuk")
+        with edit_barang_masuk_popover:
+            data_transaksi_edit = get_data_transaksi_edit()
+            if data_transaksi_edit:
+                pilihan_transaksi = {f"{transaksi[2]} - {transaksi[1].strftime('%Y-%m-%d')}": transaksi[0] for transaksi in data_transaksi_edit}
+                transaksi_terpilih = st.selectbox("Pilih Barang Masuk yang akan diedit", list(pilihan_transaksi.keys()))
+                id_transaksi = pilihan_transaksi[transaksi_terpilih]
+
+                selected_transaksi = next((t for t in data_transaksi_edit if t[0] == id_transaksi), None)
+
+                if selected_transaksi:
+                    with st.form("form_edit_barang"):
+                        st.text_input("Nama Barang", selected_transaksi[2], disabled=True)
+                        tanggal = st.date_input("Tanggal", selected_transaksi[1])
+                        
+                        # Get all rooms for selection
+                        cursor.execute("SELECT id_ruangan, nama_ruangan FROM tb_ruangan")
+                        rooms = cursor.fetchall()
+                        room_options = {room[1]: room[0] for room in rooms}
+                        selected_room = st.selectbox("Ruangan", list(room_options.keys()), index=list(room_options.values()).index(selected_transaksi[3]))
+                        
+                        jumlah = st.number_input("Jumlah", min_value=1, value=selected_transaksi[4])
+                        keterangan = st.text_area("Keterangan", selected_transaksi[5])
+                        
+                        submit = st.form_submit_button("Perbarui")
+
+                        if submit:
+                            if keterangan.strip() == "":
+                                st.error("Form keterangan tidak boleh kosong!")
+                            else:
+                                update_barang_masuk(id_transaksi, tanggal, room_options[selected_room], jumlah, keterangan)
+                                st.experimental_rerun()
+            else:
+                st.write("Tidak ada data barang masuk dalam database.")
     else:
         st.write("Tidak ditemukan data barang masuk di database.")
-
 
 if __name__ == "__main__":
     tampilkan_barang_masuk()

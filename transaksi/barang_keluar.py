@@ -262,6 +262,71 @@ def hapus_barang_keluar(id_transaksi):
     cursor.close()
     db.close()
 
+# Tambahkan fungsi baru untuk mendapatkan data transaksi untuk edit
+def get_data_transaksi_edit():
+    query = """
+    SELECT t.id_transaksi, t.tanggal, b.nama_barang, t.id_ruangan, t.jumlah, t.keterangan_transaksi, t.id_barang
+    FROM tb_transaksi t
+    JOIN tb_barang b ON t.id_barang = b.id_barang
+    WHERE t.jenis_transaksi = 'keluar'
+    """
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
+
+# Tambahkan fungsi baru untuk memperbarui barang terpakai
+def update_barang_terpakai(id_transaksi, tanggal, id_ruangan, jumlah, keterangan):
+    db = koneksi_db()
+    cursor = db.cursor()
+
+    try:
+        # Get the original quantity and id_barang
+        cursor.execute("SELECT jumlah, id_barang FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
+        original_jumlah, id_barang = cursor.fetchone()
+
+        # Update the transaction
+        cursor.execute("""
+            UPDATE tb_transaksi 
+            SET tanggal = %s, id_ruangan = %s, jumlah = %s, keterangan_transaksi = %s
+            WHERE id_transaksi = %s
+        """, (tanggal, id_ruangan, jumlah, keterangan, id_transaksi))
+
+        # Update the quantity in tb_barang
+        quantity_difference = original_jumlah - jumlah
+        cursor.execute("""
+            UPDATE tb_barang 
+            SET jumlah_sekarang = jumlah_sekarang + %s
+            WHERE id_barang = %s
+        """, (quantity_difference, id_barang))
+
+        # If quantity decreased, remove entries from tb_barang_unit
+        if quantity_difference < 0:
+            cursor.execute("""
+                DELETE FROM tb_barang_unit
+                WHERE id_barang = %s AND id_transaksi IS NULL
+                ORDER BY CAST(SUBSTRING_INDEX(nomor_seri, '-', -1) AS UNSIGNED) DESC
+                LIMIT %s
+            """, (id_barang, abs(quantity_difference)))
+        # If quantity increased, add new entries to tb_barang_unit
+        elif quantity_difference > 0:
+            for _ in range(quantity_difference):
+                nomor_seri = generate_nomor_seri(id_barang, cursor)
+                cursor.execute("""
+                    INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri)
+                    VALUES (%s, %s, %s)
+                """, (id_barang, 1, nomor_seri))  # Assuming id_kondisi 1 is 'baik'
+
+        db.commit()
+        st.success("Barang terpakai berhasil diperbarui!")
+
+    except Exception as e:
+        db.rollback()
+        st.error(f"Terjadi kesalahan saat memperbarui barang terpakai: {str(e)}")
+
+    finally:
+        cursor.close()
+        db.close()
+
 # Fungsi untuk membersihkan data transaksi yang tidak valid
 
 
@@ -398,6 +463,46 @@ def tampilkan_barang_keluar():
         st.dataframe(df_transaksi)
     else:
         st.write("Tidak ditemukan data barang terpakai di database.")
+    
+    # Edit Barang Terpakai (tambahkan bagian ini)
+    edit_barang_terpakai_popover = st.popover("Edit Barang Terpakai")
+    with edit_barang_terpakai_popover:
+        data_transaksi_edit = get_data_transaksi_edit()
+        if data_transaksi_edit:
+            pilihan_transaksi = {f"{transaksi[2]} - {transaksi[1].strftime('%Y-%m-%d')}": transaksi[0] for transaksi in data_transaksi_edit}
+            transaksi_terpilih = st.selectbox("Pilih Barang Terpakai yang akan diedit", list(pilihan_transaksi.keys()))
+            id_transaksi = pilihan_transaksi[transaksi_terpilih]
+
+            selected_transaksi = next((t for t in data_transaksi_edit if t[0] == id_transaksi), None)
+
+            if selected_transaksi:
+                with st.form("form_edit_barang_terpakai"):
+                    st.text_input("Nama Barang", selected_transaksi[2], disabled=True)
+                    tanggal = st.date_input("Tanggal", selected_transaksi[1])
+                    
+                    # Get all rooms for selection
+                    cursor.execute("SELECT id_ruangan, nama_ruangan FROM tb_ruangan")
+                    rooms = cursor.fetchall()
+                    room_options = {room[1]: room[0] for room in rooms}
+                    selected_room = st.selectbox("Ruangan", list(room_options.keys()), index=list(room_options.values()).index(selected_transaksi[3]))
+                    
+                    # Get current quantity of the item
+                    current_quantity = get_jumlah_saat_ini(selected_transaksi[6])
+                    max_quantity = current_quantity + selected_transaksi[4]  # Current quantity + Originally used quantity
+                    
+                    jumlah = st.number_input("Jumlah", min_value=1, max_value=max_quantity, value=selected_transaksi[4])
+                    keterangan = st.text_area("Keterangan", selected_transaksi[5])
+                    
+                    submit = st.form_submit_button("Perbarui")
+
+                    if submit:
+                        if keterangan.strip() == "":
+                            st.error("Form keterangan tidak boleh kosong!")
+                        else:
+                            update_barang_terpakai(id_transaksi, tanggal, room_options[selected_room], jumlah, keterangan)
+                            st.experimental_rerun()
+        else:
+            st.write("Tidak ada data barang terpakai dalam database.")
 
 
 if __name__ == "__main__":

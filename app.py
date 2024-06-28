@@ -226,7 +226,7 @@ def display_logged_in_content():
 
         elif selected == "Laporan":
             st.write("### Laporan Menu")
-            laporan_selected = option_menu(None, ["Laporan stok", "Laporan masuk", "Laporan keluar", "Laporan peminjaman"],
+            laporan_selected = option_menu(None, ["Laporan stok", "Laporan masuk", "Laporan terpakai", "Laporan peminjaman"],
                                            icons=['journal-album', 'journal-plus', 'journal-minus', 'journal-bookmark-fill'],
                                            menu_icon="cast",
                                            default_index=0,
@@ -273,7 +273,7 @@ def display_logged_in_content():
                 laporan_stok_barang()
             elif st.session_state.laporan_selected == "Laporan masuk":
                 laporan_masuk()
-            elif st.session_state.laporan_selected == "Laporan keluar":
+            elif st.session_state.laporan_selected == "Laporan terpakai":
                 laporan_keluar()
             elif st.session_state.laporan_selected == "Laporan peminjaman":
                 laporan_pinjam()

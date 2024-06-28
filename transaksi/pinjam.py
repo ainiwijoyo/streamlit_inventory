@@ -200,7 +200,6 @@ def get_data_transaksi_kembalikan():
     return data_transaksi_kembalikan
 
 # Fungsi untuk mengembalikan barang pinjam dan mengubah status barang_unit
-# Fungsi untuk mengembalikan barang pinjam dan mengubah status barang_unit
 def kembalikan_barang(id_transaksi, jumlah_rusak, kondisi_rusak):
     cursor.execute("SELECT id_barang, jumlah FROM tb_transaksi WHERE id_transaksi = %s", (id_transaksi,))
     result = cursor.fetchone()

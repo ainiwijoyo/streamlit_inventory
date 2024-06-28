@@ -1,0 +1,62 @@
+@startuml
+actor SuperAdmin
+actor Admin
+boundary Sistem
+entity Database
+
+SuperAdmin -> Sistem: Pilih menu Master
+Admin -> Sistem: Pilih menu Master
+Sistem -> Sistem: Tampilkan sub menu ruangan
+
+    SuperAdmin -> Sistem: Pilih "ruangan"
+    Admin -> Sistem: Pilih "ruangan"
+    Sistem -> Database: Ambil data ruangan
+    Database --> Sistem: Kirim data ruangan
+    Sistem -> Sistem: Tampilkan daftar ruangan
+
+alt Tambah ruangan
+    SuperAdmin -> Sistem: Pilih "Tambah ruangan"
+    Admin -> Sistem: Pilih "Tambah ruangan"
+    Sistem -> Sistem: Tampilkan form tambah ruangan
+    SuperAdmin -> Sistem: Isi nama dan keterangan ruangan
+    Admin -> Sistem: Isi nama dan keterangan ruangan
+    Sistem -> Database: Cek duplikasi nama ruangan
+    Database --> Sistem: Hasil pengecekan
+    alt Nama ruangan unik
+        Sistem -> Database: Simpan ruangan baru
+        Database --> Sistem: Konfirmasi penyimpanan
+        Sistem -> SuperAdmin: Tampilkan pesan sukses
+        Sistem -> Admin: Tampilkan pesan sukses
+    else Nama ruangan duplikat
+        Sistem -> SuperAdmin: Tampilkan pesan error
+        Sistem -> Admin: Tampilkan pesan error
+    end
+end
+
+alt Update ruangan
+    SuperAdmin -> Sistem: Pilih ruangan untuk diupdate
+    Admin -> Sistem: Pilih ruangan untuk diupdate
+    Sistem -> Sistem: Tampilkan form update ruangan
+    SuperAdmin -> Sistem: Edit nama dan keterangan ruangan
+    Admin -> Sistem: Edit nama dan keterangan ruangan
+    Sistem -> Database: Update data ruangan
+    Database --> Sistem: Konfirmasi update
+    Sistem -> SuperAdmin: Tampilkan pesan sukses
+    Sistem -> Admin: Tampilkan pesan sukses
+end
+
+alt Hapus ruangan
+    SuperAdmin -> Sistem: Pilih ruangan untuk dihapus
+    Admin -> Sistem: Pilih ruangan untuk dihapus
+    Sistem -> Sistem: Tampilkan konfirmasi hapus
+    SuperAdmin -> Sistem: Konfirmasi penghapusan
+    Admin -> Sistem: Konfirmasi penghapusan
+    Sistem -> Database: Hapus ruangan
+    Database --> Sistem: Konfirmasi penghapusan
+    Sistem -> Database: Update id ruangan terkait
+    Database --> Sistem: Konfirmasi update
+    Sistem -> SuperAdmin: Tampilkan pesan sukses
+    Sistem -> Admin: Tampilkan pesan sukses
+end
+
+@enduml

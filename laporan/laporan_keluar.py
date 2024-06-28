@@ -48,7 +48,7 @@ def ambil_data(tgl_dari, tgl_sampai):
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 13)
-        self.cell(0, 2, 'LAPORAN BARANG KELUAR BAGIAN TIK', 0, 1, 'C')
+        self.cell(0, 2, 'LAPORAN BARANG TERPAKAI BAGIAN TIK', 0, 1, 'C')
         self.cell(0, 7, 'FAKULTAS KESEHATAN UNJAYA', 0, 1, 'C')
 
     def footer(self):
@@ -87,12 +87,12 @@ class PDF(FPDF):
             total_barang += row[4]
 
         self.set_font('Arial', 'B', 10)
-        self.cell(160, 10, 'TOTAL SEMUA BARANG KELUAR', 1, 0, 'C')
+        self.cell(160, 10, 'TOTAL SEMUA BARANG TERPAKAI', 1, 0, 'C')
         self.cell(30, 10, str(total_barang), 1, 1, 'C')
 
 
 def laporan_keluar():
-    st.title('CETAK LAPORAN TRANSAKSI KELUAR')
+    st.title('CETAK LAPORAN TRANSAKSI TERPAKAI')
 
     col1, col2 = st.columns([1, 1])
 
@@ -120,6 +120,6 @@ def laporan_keluar():
             href = f'<a href="data:application/pdf;base64,{base64.b64encode(pdf_bytes).decode()}" download="{file_name}" target="_blank">Unduh Laporan</a>'
             st.markdown(href, unsafe_allow_html=True)
         else:
-            st.warning('Tidak ada data transaksi keluar pada periode ini.')
+            st.warning('Tidak ada data transaksi terpakai pada periode ini.')
 
 laporan_keluar()

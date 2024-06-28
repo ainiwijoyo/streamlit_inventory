@@ -5,9 +5,9 @@ def koneksi_db():
     Fungsi untuk koneksi ke database MySQL
     """
     db = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="",
+        host="mysql-177022-0.cloudclusters.net",
+        user="admin",
+        password="imkQ01zz",
         database="db_stinven"
     )
     return db

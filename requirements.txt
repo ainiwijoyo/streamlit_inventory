@@ -74,7 +74,7 @@ more-itertools==10.2.0
 MouseInfo==0.1.3
 mss==9.0.1
 mysql-connector-python==8.4.0
-mysqlclient==2.2.4
+mysqlclient==2.2.4 --no-binary=:all:
 namex==0.0.8
 nest-asyncio==1.6.0
 networkx==3.3
@@ -91,7 +91,7 @@ parler==1.0.1
 parso==0.8.3
 patsy==0.5.6
 pdfkit==1.0.0
-Pillow==9.2.0
+Pillow==9.3.0
 platformdirs==4.2.0
 plotly==5.22.0
 plotly-express==0.4.1

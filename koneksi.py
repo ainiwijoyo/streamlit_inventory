@@ -9,11 +9,11 @@ def koneksi_db():
     """
     try:
         db = mysql.connector.connect(
-            host=os.getenv('DB_HOST', 'mysql-177022-0.cloudclusters.net'),
-            user=os.getenv('DB_USER', 'admin'),
-            password=os.getenv('DB_PASSWORD', 'imkQ01zz'),
-            database=os.getenv('DB_NAME', 'db_stinven'),
-            port=int(os.getenv('DB_PORT', '3306'))  # Tambahkan port jika diperlukan
+            host=os.getenv('mysql-177022-0.cloudclusters.net'),
+            user=os.getenv('admin'),
+            password=os.getenv('imkQ01zz'),
+            database=os.getenv('db_stinven'),
+            port=int(os.getenv('3306'))  # Tambahkan port jika diperlukan
         )
         if db.is_connected():
             print("Berhasil terhubung ke database")

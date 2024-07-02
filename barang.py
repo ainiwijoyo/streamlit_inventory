@@ -136,67 +136,72 @@ def show_message(message_type, message_content):
 
 # Fungsi untuk menambah data barang dengan validasi data yang sudah ada
 def add_data(nama_barang, id_merek, id_kategori, id_ruangan, jumlah_awal, keterangan_barang, tanggal_barang):
-    if not nama_barang or not keterangan_barang:
+    if not nama_barang or not id_merek or not id_kategori or not id_ruangan or not jumlah_awal or not keterangan_barang or not tanggal_barang:
         st.error("Semua form wajib diisi!")
-        time.sleep(2)
-        st.empty()
         return
 
-    db = koneksi_db()
-    cursor = db.cursor()
+    try:
+        db = koneksi_db()
+        cursor = db.cursor()
 
-    # Cek apakah data sudah ada
-    query_check = """
-        SELECT COUNT(*) FROM tb_barang 
-        WHERE nama_barang = %s AND id_merek = %s AND id_kategori = %s AND id_ruangan = %s
-    """
-    cursor.execute(query_check, (nama_barang, id_merek, id_kategori, id_ruangan))
-    count = cursor.fetchone()[0]
-
-    if count > 0:
-        show_message("warning", "Data sudah ada sebelumnya!")
-    else:
-        # Menyesuaikan ID Barang agar berurutan
-        query = "SELECT COALESCE(MAX(id_barang), 0) + 1 FROM tb_barang"
-        cursor.execute(query)
-        next_id = cursor.fetchone()[0]
-
-        # Default kondisi ID untuk kondisi "BAIK" (ID Kondisi = 1)
-        id_kondisi = 1
-
-        # Hitung jumlah sekarang
-        jumlah_sekarang = jumlah_awal
-
-        # Insert ke tb_barang
-        query_barang = """
-            INSERT INTO tb_barang (id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, jumlah_sekarang, keterangan_barang, tanggal_barang)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        # Cek apakah data sudah ada
+        query_check = """
+            SELECT COUNT(*) FROM tb_barang 
+            WHERE nama_barang = %s AND id_merek = %s AND id_kategori = %s AND id_ruangan = %s
         """
-        cursor.execute(query_barang, (next_id, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, jumlah_sekarang, keterangan_barang, tanggal_barang))
+        cursor.execute(query_check, (nama_barang, id_merek, id_kategori, id_ruangan))
+        count = cursor.fetchone()[0]
 
-        # Insert ke tb_barang_unit
-        query_barang_unit = """
-            INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri, tanggal)
-            VALUES (%s, %s, %s, %s)
-        """
-        for i in range(jumlah_awal):
-            nomor_seri = f"{next_id:04}-{i+1:02}"  # Format nomor seri, misal: 1-0001, 1-0002, dll.
+        if count > 0:
+            show_message("warning", "Data sudah ada sebelumnya!")
+        else:
+            # Menyesuaikan ID Barang agar berurutan
+            query = "SELECT COALESCE(MAX(id_barang), 0) + 1 FROM tb_barang"
+            cursor.execute(query)
+            next_id = cursor.fetchone()[0]
 
-            # Pastikan nomor seri unik sebelum dimasukkan ke database
-            while True:
-                cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE nomor_seri = %s", (nomor_seri,))
-                if cursor.fetchone()[0] == 0:
-                    break
-                i += 1
-                nomor_seri = f"{next_id:04}-{i+1:02}"
+            # Default kondisi ID untuk kondisi "BAIK" (ID Kondisi = 1)
+            id_kondisi = 1
 
-            cursor.execute(query_barang_unit, (next_id, id_kondisi, nomor_seri, tanggal_barang))
+            # Hitung jumlah sekarang
+            jumlah_sekarang = jumlah_awal
 
-        db.commit()
-        show_message("success", "Data barang berhasil ditambahkan!")
+            # Insert ke tb_barang
+            query_barang = """
+                INSERT INTO tb_barang (id_barang, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, jumlah_sekarang, keterangan_barang, tanggal_barang)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query_barang, (next_id, nama_barang, id_merek, id_kategori, id_ruangan, id_kondisi, jumlah_awal, jumlah_sekarang, keterangan_barang, tanggal_barang))
 
-    cursor.close()
-    db.close()
+            # Insert ke tb_barang_unit
+            query_barang_unit = """
+                INSERT INTO tb_barang_unit (id_barang, id_kondisi, nomor_seri, tanggal)
+                VALUES (%s, %s, %s, %s)
+            """
+            for i in range(jumlah_awal):
+                nomor_seri = f"{next_id:04}-{i+1:02}"  # Format nomor seri, misal: 1-0001, 1-0002, dll.
+
+                # Pastikan nomor seri unik sebelum dimasukkan ke database
+                while True:
+                    cursor.execute("SELECT COUNT(*) FROM tb_barang_unit WHERE nomor_seri = %s", (nomor_seri,))
+                    if cursor.fetchone()[0] == 0:
+                        break
+                    i += 1
+                    nomor_seri = f"{next_id:04}-{i+1:02}"
+
+                cursor.execute(query_barang_unit, (next_id, id_kondisi, nomor_seri, tanggal_barang))
+
+            db.commit()
+            show_message("success", "Data barang berhasil ditambahkan!")
+
+    except mysql.connector.Error as err:
+        db.rollback()
+        st.error(f"Terjadi kesalahan: {err}")
+    finally:
+        if cursor:
+            cursor.close()
+        if db:
+            db.close()
 
 
 
